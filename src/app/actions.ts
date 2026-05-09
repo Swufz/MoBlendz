@@ -1,0 +1,389 @@
+"use server";
+
+import { addMinutes } from "date-fns";
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { z } from "zod";
+import {
+  calculateCompletionSummary,
+  combineDateAndTime,
+  isWithinBusinessHours,
+  rangesOverlap,
+} from "@/lib/business-logic";
+import { getServiceDuration, getServicePrice } from "@/lib/config";
+import { getAdminSettings } from "@/lib/data";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import type { Booking, DiscountCredit, Loyalty, Profile } from "@/lib/types";
+
+const bookingSchema = z.object({
+  serviceType: z.enum(["haircut", "haircut_beard"]),
+  date: z.string().min(1),
+  time: z.string().min(1),
+  notes: z.string().max(500).optional(),
+});
+
+export async function signInWithGoogle() {
+  const supabase = await getConfiguredSupabaseClient();
+  if (!supabase) {
+    throw new Error("Supabase is not configured. Add .env.local before signing in.");
+  }
+  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: `${origin}/auth/callback`,
+    },
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  redirect(data.url);
+}
+
+export async function signOut() {
+  const supabase = await getConfiguredSupabaseClient();
+  if (!supabase) {
+    redirect("/");
+  }
+  await supabase.auth.signOut();
+  redirect("/");
+}
+
+export async function createBooking(formData: FormData) {
+  const parsed = bookingSchema.safeParse({
+    serviceType: formData.get("serviceType"),
+    date: formData.get("date"),
+    time: formData.get("time"),
+    notes: formData.get("notes")?.toString() ?? "",
+  });
+
+  if (!parsed.success) {
+    return { ok: false, message: "Please choose a service, date, and time." };
+  }
+
+  const supabase = await getConfiguredSupabaseClient();
+  if (!supabase) {
+    return {
+      ok: false,
+      message:
+        "Supabase is not configured yet. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to .env.local.",
+    };
+  }
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login?next=/booking");
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("auth_user_id", user.id)
+    .maybeSingle<Profile>();
+
+  if (!profile) {
+    redirect("/profile/setup");
+  }
+
+  const settings = await getAdminSettings();
+  const startsAt = combineDateAndTime(parsed.data.date, parsed.data.time);
+  const duration = getServiceDuration(parsed.data.serviceType, settings);
+
+  if (!isWithinBusinessHours(startsAt, duration, settings)) {
+    return { ok: false, message: "That time is outside available business hours." };
+  }
+
+  const rangeEnd = addMinutes(startsAt, duration).toISOString();
+  const [{ data: possibleConflicts }, { data: blockedTimes }] = await Promise.all([
+    supabase
+      .from("bookings")
+      .select("*")
+      .in("status", ["pending", "confirmed"])
+      .lt("date_time", rangeEnd)
+      .returns<Booking[]>(),
+    supabase
+      .from("blocked_times")
+      .select("*")
+      .lt("starts_at", rangeEnd)
+      .gt("ends_at", startsAt.toISOString())
+      .returns<{ starts_at: string; ends_at: string }[]>(),
+  ]);
+
+  const hasConflict = (possibleConflicts ?? []).some((booking) =>
+    rangesOverlap(
+      startsAt,
+      duration,
+      new Date(booking.date_time),
+      booking.duration_minutes,
+    ),
+  );
+
+  if (hasConflict || (blockedTimes?.length ?? 0) > 0) {
+    return { ok: false, message: "That time is unavailable. Pick another slot." };
+  }
+
+  const basePrice = getServicePrice(parsed.data.serviceType, settings);
+
+  const { error } = await supabase.from("bookings").insert({
+    user_id: profile.id,
+    service_type: parsed.data.serviceType,
+    base_price: basePrice,
+    final_price: null,
+    discount_type: "none",
+    discount_amount: 0,
+    date_time: startsAt.toISOString(),
+    duration_minutes: duration,
+    status: "pending",
+    notes: parsed.data.notes || null,
+  });
+
+  if (error) {
+    return { ok: false, message: error.message };
+  }
+
+  revalidatePath("/");
+  revalidatePath("/booking");
+  revalidatePath("/profile");
+  redirect("/profile?booked=1");
+}
+
+export async function cancelBooking(bookingId: string) {
+  const supabase = await getConfiguredSupabaseClient();
+  if (!supabase) {
+    redirect("/login");
+  }
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("auth_user_id", user.id)
+    .maybeSingle<Profile>();
+
+  if (!profile) {
+    redirect("/login");
+  }
+
+  const { data: booking } = await supabase
+    .from("bookings")
+    .select("*")
+    .eq("id", bookingId)
+    .eq("user_id", profile.id)
+    .in("status", ["pending", "confirmed"])
+    .maybeSingle<Booking>();
+
+  if (!booking) {
+    return;
+  }
+
+  const settings = await getAdminSettings();
+  const cutoff = addMinutes(new Date(), settings.cancellation_window_hours * 60);
+  if (!settings.allow_customer_cancellation || new Date(booking.date_time) < cutoff) {
+    throw new Error("This booking can no longer be cancelled online.");
+  }
+
+  await supabase.from("bookings").update({
+    status: "cancelled",
+    updated_at: new Date().toISOString(),
+  }).eq("id", booking.id);
+
+  revalidatePath("/profile");
+}
+
+export async function completeBooking(bookingId: string, formData: FormData) {
+  const manualFinal = Number(formData.get("manualFinal") || NaN);
+  const supabase = await getConfiguredSupabaseClient();
+  if (!supabase) {
+    throw new Error("Supabase is not configured.");
+  }
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const { data: adminProfile } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("auth_user_id", user.id)
+    .eq("role", "admin")
+    .maybeSingle<Profile>();
+
+  if (!adminProfile) {
+    redirect("/");
+  }
+
+  const { data: booking, error: bookingError } = await supabase
+    .from("bookings")
+    .select("*")
+    .eq("id", bookingId)
+    .maybeSingle<Booking>();
+
+  if (bookingError || !booking) {
+    throw new Error(bookingError?.message ?? "Booking not found.");
+  }
+
+  const settings = await getAdminSettings();
+  const { data: loyalty } = await supabase
+    .from("loyalty")
+    .select("*")
+    .eq("user_id", booking.user_id)
+    .maybeSingle<Loyalty>();
+  const currentLoyalty =
+    loyalty ??
+    ({
+      user_id: booking.user_id,
+      paid_haircuts_since_last_free: 0,
+      free_haircuts_available: 0,
+      total_free_haircuts_used: 0,
+    } as Loyalty);
+
+  const { data: credit } = await supabase
+    .from("discount_credits")
+    .select("*")
+    .eq("user_id", booking.user_id)
+    .eq("status", "unused")
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle<DiscountCredit>();
+
+  const summary = calculateCompletionSummary({
+    booking,
+    loyalty: currentLoyalty,
+    referralCredit: credit,
+    settings,
+  });
+  const finalPrice = Number.isFinite(manualFinal) ? manualFinal : summary.finalCashDue;
+  const completedAt = new Date().toISOString();
+
+  const { error: updateError } = await supabase.from("bookings").update({
+    status: "completed",
+    final_price: finalPrice,
+    discount_type: summary.freeHaircutApplied
+      ? "free_haircut"
+      : summary.referralCreditApplied
+        ? "referral"
+        : "none",
+    discount_amount: summary.discountAmount,
+    completed_at: completedAt,
+  }).eq("id", booking.id);
+
+  if (updateError) {
+    throw new Error(updateError.message);
+  }
+
+  await supabase.from("haircut_history").insert({
+    user_id: booking.user_id,
+    booking_id: booking.id,
+    service_type: booking.service_type,
+    base_price: booking.base_price,
+    discount_amount: summary.discountAmount,
+    final_price: finalPrice,
+    was_free_haircut: summary.freeHaircutApplied,
+    used_referral_credit: summary.referralCreditApplied,
+    completed_at: completedAt,
+  });
+
+  await supabase.from("loyalty").upsert({
+    user_id: booking.user_id,
+    paid_haircuts_since_last_free: summary.loyaltyAfter,
+    free_haircuts_available: summary.freeHaircutsAvailableAfter,
+    total_free_haircuts_used:
+      (currentLoyalty.total_free_haircuts_used ?? 0) +
+      (summary.freeHaircutApplied ? 1 : 0),
+    updated_at: completedAt,
+  }, { onConflict: "user_id" });
+
+  if (summary.referralCreditApplied && credit) {
+    await supabase.from("discount_credits").update({
+      status: "used",
+      used_booking_id: booking.id,
+      used_at: completedAt,
+    }).eq("id", credit.id);
+  }
+
+  await rewardFirstCompletedReferral(booking.user_id, settings.referral_discount_amount);
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/bookings");
+  revalidatePath(`/admin/bookings/${booking.id}/complete`);
+  redirect("/admin/bookings?completed=1");
+}
+
+async function rewardFirstCompletedReferral(userId: string, amount: number) {
+  const supabase = await getConfiguredSupabaseClient();
+  if (!supabase) {
+    return;
+  }
+  const { count } = await supabase
+    .from("haircut_history")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId);
+
+  if (count !== 1) {
+    return;
+  }
+
+  const { data: referral } = await supabase
+    .from("referrals")
+    .select("*")
+    .eq("referred_user_id", userId)
+    .eq("status", "pending")
+    .maybeSingle<{ id: string; referrer_user_id: string; referred_user_id: string }>();
+
+  if (!referral || referral.referrer_user_id === referral.referred_user_id) {
+    return;
+  }
+
+  const createdAt = new Date().toISOString();
+  await supabase.from("discount_credits").insert([
+    {
+      user_id: referral.referrer_user_id,
+      type: "referral",
+      amount,
+      status: "unused",
+      source_referral_id: referral.id,
+      created_at: createdAt,
+    },
+    {
+      user_id: referral.referred_user_id,
+      type: "referral",
+      amount,
+      status: "unused",
+      source_referral_id: referral.id,
+      created_at: createdAt,
+    },
+  ]);
+
+  await supabase.from("referrals").update({
+    status: "rewarded",
+    completed_at: createdAt,
+  }).eq("id", referral.id);
+}
+
+async function getConfiguredSupabaseClient() {
+  try {
+    return await createSupabaseServerClient();
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      error.message.includes("Missing NEXT_PUBLIC_SUPABASE")
+    ) {
+      return null;
+    }
+
+    throw error;
+  }
+}
