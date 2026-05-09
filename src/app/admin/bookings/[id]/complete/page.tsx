@@ -19,7 +19,7 @@ export default async function CompleteBookingPage({
   const supabase = await getSupabaseOrNull();
   const { data: booking } = await supabase!
     .from("bookings")
-    .select("*, profiles(full_name, email, phone, avatar_url)")
+    .select("id, user_id, service_type, base_price, final_price, discount_type, discount_amount, date_time, duration_minutes, status, notes, completed_at, created_at, updated_at, profiles(full_name, email, phone, avatar_url)")
     .eq("id", id)
     .maybeSingle<Booking>();
 
@@ -31,12 +31,12 @@ export default async function CompleteBookingPage({
     getAdminSettings(),
     supabase!
       .from("loyalty")
-      .select("*")
+      .select("id, user_id, paid_haircuts_since_last_free, free_haircuts_available, total_free_haircuts_used, updated_at")
       .eq("user_id", booking.user_id)
       .maybeSingle<Loyalty>(),
     supabase!
       .from("discount_credits")
-      .select("*")
+      .select("id, user_id, type, amount, status, source_referral_id, used_booking_id, created_at, used_at")
       .eq("user_id", booking.user_id)
       .eq("status", "unused")
       .order("created_at", { ascending: true })

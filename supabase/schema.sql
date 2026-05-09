@@ -66,6 +66,10 @@ create table bookings (
 create index bookings_date_time_idx on bookings(date_time);
 create index bookings_status_idx on bookings(status);
 create index bookings_user_id_idx on bookings(user_id);
+create index bookings_status_date_time_idx on bookings(status, date_time);
+create index profiles_auth_user_id_idx on profiles(auth_user_id);
+create index profiles_phone_idx on profiles(phone);
+create index profiles_role_created_at_idx on profiles(role, created_at);
 
 create table haircut_history (
   id uuid primary key default gen_random_uuid(),
@@ -79,6 +83,10 @@ create table haircut_history (
   used_referral_credit boolean not null default false,
   completed_at timestamptz not null default now()
 );
+
+create index haircut_history_user_id_idx on haircut_history(user_id);
+create index haircut_history_completed_at_idx on haircut_history(completed_at);
+create index haircut_history_service_type_idx on haircut_history(service_type);
 
 create table loyalty (
   id uuid primary key default gen_random_uuid(),
@@ -99,6 +107,9 @@ create table referrals (
   constraint no_referral_self_pair check (referrer_user_id <> referred_user_id)
 );
 
+create index referrals_referrer_user_id_idx on referrals(referrer_user_id);
+create index referrals_referred_user_id_idx on referrals(referred_user_id);
+
 create table discount_credits (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references profiles(id) on delete cascade,
@@ -110,6 +121,9 @@ create table discount_credits (
   created_at timestamptz not null default now(),
   used_at timestamptz
 );
+
+create index discount_credits_user_id_idx on discount_credits(user_id);
+create index discount_credits_user_status_idx on discount_credits(user_id, status);
 
 create table blocked_times (
   id uuid primary key default gen_random_uuid(),
@@ -142,6 +156,33 @@ as $$
     where id = profile_id
     and auth_user_id = auth.uid()
   );
+$$;
+
+create or replace function admin_dashboard_stats()
+returns table (
+  total_earnings numeric,
+  month_earnings numeric,
+  completed_haircuts bigint,
+  haircut_only_count bigint,
+  haircut_beard_count bigint,
+  active_customers bigint
+)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select
+    coalesce(sum(h.final_price), 0) as total_earnings,
+    coalesce(sum(h.final_price) filter (
+      where h.completed_at >= date_trunc('month', now())
+    ), 0) as month_earnings,
+    count(h.id) as completed_haircuts,
+    count(h.id) filter (where h.service_type = 'haircut') as haircut_only_count,
+    count(h.id) filter (where h.service_type = 'haircut_beard') as haircut_beard_count,
+    (select count(*) from profiles p where p.role = 'customer') as active_customers
+  from haircut_history h
+  where is_admin();
 $$;
 
 alter table profiles enable row level security;

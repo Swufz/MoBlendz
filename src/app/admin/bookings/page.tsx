@@ -4,36 +4,130 @@ import { SiteHeader } from "@/components/site-header";
 import { formatBookingDate, formatBookingTime } from "@/lib/business-logic";
 import { serviceLabels } from "@/lib/config";
 import { getSessionProfile, getSupabaseOrNull } from "@/lib/data";
-import type { Booking } from "@/lib/types";
+import type { Booking, BookingStatus } from "@/lib/types";
 
-export default async function AdminBookingsPage() {
+type AdminBookingRow = Pick<
+  Booking,
+  "id" | "service_type" | "date_time" | "status" | "duration_minutes" | "base_price"
+> & {
+  profiles?: {
+    full_name: string;
+    email: string;
+    phone: string | null;
+  } | null;
+};
+
+const validStatuses: BookingStatus[] = [
+  "pending",
+  "confirmed",
+  "completed",
+  "cancelled",
+  "no_show",
+];
+
+export default async function AdminBookingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; status?: string; page?: string }>;
+}) {
+  console.time("admin bookings auth check");
   const { profile } = await getSessionProfile();
+  console.timeEnd("admin bookings auth check");
+
+  console.time("admin bookings profile role check");
   if (profile?.role !== "admin") {
+    console.timeEnd("admin bookings profile role check");
+    redirect("/");
+  }
+  console.timeEnd("admin bookings profile role check");
+
+  const { q = "", status = "upcoming", page = "1" } = await searchParams;
+  const currentPage = Math.max(1, Number(page) || 1);
+  const pageSize = 50;
+  const from = (currentPage - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  const supabase = await getSupabaseOrNull();
+  if (!supabase) {
     redirect("/");
   }
 
-  const supabase = await getSupabaseOrNull();
-  const { data: bookings } = await supabase!
+  console.time("bookings fetch");
+  let query = supabase
     .from("bookings")
-    .select("*, profiles(full_name, email, phone, avatar_url)")
-    .order("date_time", { ascending: true })
-    .returns<Booking[]>();
+    .select("id, service_type, date_time, status, duration_minutes, base_price, profiles(full_name, email, phone)", {
+      count: "exact",
+    })
+    .order("date_time", { ascending: status === "upcoming" })
+    .range(from, to);
+
+  if (status === "upcoming") {
+    query = query
+      .in("status", ["pending", "confirmed"])
+      .gte("date_time", new Date().toISOString());
+  } else if (validStatuses.includes(status as BookingStatus)) {
+    query = query.eq("status", status);
+  }
+
+  if (q.trim()) {
+    query = query.or(
+      `profiles.full_name.ilike.%${q}%,profiles.email.ilike.%${q}%,profiles.phone.ilike.%${q}%`,
+    );
+  }
+
+  const { data: bookings, error, count } = await query.returns<AdminBookingRow[]>();
+  console.timeEnd("bookings fetch");
 
   return (
     <>
       <SiteHeader profile={profile} />
       <main className="mx-auto w-full max-w-6xl px-4 py-8">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.16em] text-muted">
               Admin
             </p>
             <h1 className="text-3xl font-semibold">Bookings</h1>
           </div>
-          <Link href="/admin" className="rounded-full bg-barber-blue px-4 py-2 text-sm font-semibold">
-            Stats
-          </Link>
+          <div className="flex gap-2">
+            <Link href="/admin" className="rounded-full bg-barber-blue px-4 py-2 text-sm font-semibold">
+              Dashboard
+            </Link>
+            <Link href="/admin/customers" className="rounded-full bg-surface px-4 py-2 text-sm font-semibold ring-1 ring-line">
+              Customers
+            </Link>
+          </div>
         </div>
+
+        <form className="mt-6 grid gap-3 rounded-[2rem] border border-line bg-surface p-4 sm:grid-cols-[1fr_auto_auto]">
+          <input
+            name="q"
+            defaultValue={q}
+            placeholder="Search name, phone, or email"
+            className="h-11 rounded-full border border-line bg-background px-4"
+          />
+          <select
+            name="status"
+            defaultValue={status}
+            className="h-11 rounded-full border border-line bg-background px-4"
+          >
+            <option value="upcoming">Upcoming</option>
+            {validStatuses.map((bookingStatus) => (
+              <option key={bookingStatus} value={bookingStatus}>
+                {bookingStatus}
+              </option>
+            ))}
+          </select>
+          <button className="h-11 rounded-full bg-foreground px-5 font-semibold text-background">
+            Filter
+          </button>
+        </form>
+
+        {error ? (
+          <p className="mt-4 rounded-2xl bg-red-50 p-4 text-sm font-medium text-red-700">
+            Bookings could not load: {error.message}
+          </p>
+        ) : null}
 
         <div className="mt-6 overflow-hidden rounded-[2rem] border border-line bg-surface">
           <div className="grid grid-cols-[1.2fr_1fr_0.8fr_0.7fr] gap-3 border-b border-line px-5 py-3 text-sm font-semibold text-muted max-md:hidden">
@@ -73,6 +167,25 @@ export default async function AdminBookingsPage() {
                 </div>
               </article>
             ))}
+            {!bookings?.length ? (
+              <p className="px-5 py-10 text-center text-muted">No bookings found.</p>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="mt-4 flex items-center justify-between text-sm text-muted">
+          <span>Showing up to {pageSize} of {count ?? 0} results</span>
+          <div className="flex gap-2">
+            {currentPage > 1 ? (
+              <Link className="rounded-full bg-surface px-4 py-2 ring-1 ring-line" href={`/admin/bookings?q=${q}&status=${status}&page=${currentPage - 1}`}>
+                Previous
+              </Link>
+            ) : null}
+            {(count ?? 0) > to + 1 ? (
+              <Link className="rounded-full bg-surface px-4 py-2 ring-1 ring-line" href={`/admin/bookings?q=${q}&status=${status}&page=${currentPage + 1}`}>
+                Next
+              </Link>
+            ) : null}
           </div>
         </div>
       </main>
