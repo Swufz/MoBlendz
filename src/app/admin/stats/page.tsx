@@ -70,16 +70,20 @@ export default async function AdminStatsPage() {
         ) : null}
 
         <section className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <StatCard icon={<DollarSign />} label="Total earnings" value={`$${stats.total_earnings}`} />
-          <StatCard icon={<TrendingUp />} label="Monthly earnings" value={`$${stats.month_earnings}`} />
-          <StatCard icon={<CalendarCheck />} label="Completed haircuts" value={stats.completed_haircuts} />
-          <StatCard icon={<Scissors />} label="Haircut only" value={stats.haircut_only_count} />
-          <StatCard icon={<Scissors />} label="Haircut + beard" value={stats.haircut_beard_count} />
-          <StatCard icon={<CalendarCheck />} label="Active customers" value={stats.active_customers} />
+          <StatCard icon={<DollarSign />} label="Total earnings" value={formatCurrency(stats.total_earnings)} />
+          <StatCard icon={<TrendingUp />} label="Monthly earnings" value={formatCurrency(stats.month_earnings)} />
+          <StatCard icon={<CalendarCheck />} label="Completed haircuts" value={stats.completed_haircuts ?? 0} />
+          <StatCard icon={<Scissors />} label="Haircut only" value={stats.haircut_only_count ?? 0} />
+          <StatCard icon={<Scissors />} label="Haircut + beard" value={stats.haircut_beard_count ?? 0} />
+          <StatCard icon={<CalendarCheck />} label="Active customers" value={stats.active_customers ?? 0} />
         </section>
       </main>
     </>
   );
+}
+
+function formatCurrency(value: number | string | null | undefined) {
+  return `$${Number(value ?? 0).toFixed(0)}`;
 }
 
 function StatCard({

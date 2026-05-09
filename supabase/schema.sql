@@ -134,27 +134,33 @@ create table blocked_times (
   constraint blocked_time_positive check (ends_at > starts_at)
 );
 
-create or replace function is_admin()
+create or replace function public.is_admin()
 returns boolean
 language sql
 stable
+security definer
+set search_path = public
 as $$
   select exists (
-    select 1 from profiles
+    select 1
+    from public.profiles
     where auth_user_id = auth.uid()
-    and role = 'admin'
+      and role = 'admin'
   );
 $$;
 
-create or replace function owns_profile(profile_id uuid)
+create or replace function public.owns_profile(profile_id uuid)
 returns boolean
 language sql
 stable
+security definer
+set search_path = public
 as $$
   select exists (
-    select 1 from profiles
+    select 1
+    from public.profiles
     where id = profile_id
-    and auth_user_id = auth.uid()
+      and auth_user_id = auth.uid()
   );
 $$;
 
@@ -180,9 +186,13 @@ as $$
     count(h.id) as completed_haircuts,
     count(h.id) filter (where h.service_type = 'haircut') as haircut_only_count,
     count(h.id) filter (where h.service_type = 'haircut_beard') as haircut_beard_count,
-    (select count(*) from profiles p where p.role = 'customer') as active_customers
+    case
+      when public.is_admin()
+      then (select count(*) from public.profiles p where p.role = 'customer')
+      else 0
+    end as active_customers
   from haircut_history h
-  where is_admin();
+  where public.is_admin();
 $$;
 
 alter table profiles enable row level security;
@@ -194,65 +204,101 @@ alter table discount_credits enable row level security;
 alter table admin_settings enable row level security;
 alter table blocked_times enable row level security;
 
-create policy "profiles_select_own_or_admin" on profiles
-for select using (auth_user_id = auth.uid() or is_admin());
+drop policy if exists "profiles_select_own_or_admin" on profiles;
+drop policy if exists "profiles_update_own_phone_or_admin" on profiles;
+drop policy if exists "profiles_insert_self" on profiles;
+drop policy if exists "profiles_select_own" on profiles;
+drop policy if exists "profiles_select_admin" on profiles;
+drop policy if exists "profiles_update_own" on profiles;
+drop policy if exists "profiles_update_admin" on profiles;
+drop policy if exists "profiles_insert_own" on profiles;
 
-create policy "profiles_update_own_phone_or_admin" on profiles
-for update using (auth_user_id = auth.uid() or is_admin())
-with check (auth_user_id = auth.uid() or is_admin());
+create policy "profiles_select_own" on profiles
+for select using (auth_user_id = auth.uid());
 
-create policy "profiles_insert_self" on profiles
+create policy "profiles_select_admin" on profiles
+for select using (public.is_admin());
+
+create policy "profiles_update_own" on profiles
+for update using (auth_user_id = auth.uid())
+with check (auth_user_id = auth.uid());
+
+create policy "profiles_update_admin" on profiles
+for update using (public.is_admin())
+with check (public.is_admin());
+
+create policy "profiles_insert_own" on profiles
 for insert with check (auth_user_id = auth.uid());
 
-create policy "bookings_select_own_or_admin" on bookings
-for select using (owns_profile(user_id) or is_admin());
+drop policy if exists "bookings_select_own_or_admin" on bookings;
+drop policy if exists "bookings_insert_own" on bookings;
+drop policy if exists "bookings_update_own_or_admin" on bookings;
+drop policy if exists "bookings_select_own" on bookings;
+drop policy if exists "bookings_select_admin" on bookings;
+drop policy if exists "bookings_insert_customer" on bookings;
+drop policy if exists "bookings_update_own" on bookings;
+drop policy if exists "bookings_update_admin" on bookings;
+drop policy if exists "bookings_delete_admin" on bookings;
 
-create policy "bookings_insert_own" on bookings
-for insert with check (owns_profile(user_id));
+create policy "bookings_select_own" on bookings
+for select using (public.owns_profile(user_id));
 
-create policy "bookings_update_own_or_admin" on bookings
-for update using (owns_profile(user_id) or is_admin())
-with check (owns_profile(user_id) or is_admin());
+create policy "bookings_select_admin" on bookings
+for select using (public.is_admin());
+
+create policy "bookings_insert_customer" on bookings
+for insert with check (public.owns_profile(user_id));
+
+create policy "bookings_update_own" on bookings
+for update using (public.owns_profile(user_id))
+with check (public.owns_profile(user_id));
+
+create policy "bookings_update_admin" on bookings
+for update using (public.is_admin())
+with check (public.is_admin());
+
+create policy "bookings_delete_admin" on bookings
+for delete using (public.is_admin());
 
 create policy "history_select_own_or_admin" on haircut_history
-for select using (owns_profile(user_id) or is_admin());
+for select using (public.owns_profile(user_id) or public.is_admin());
 
 create policy "history_insert_admin" on haircut_history
-for insert with check (is_admin());
+for insert with check (public.is_admin());
 
 create policy "loyalty_select_own_or_admin" on loyalty
-for select using (owns_profile(user_id) or is_admin());
+for select using (public.owns_profile(user_id) or public.is_admin());
 
 create policy "loyalty_write_admin" on loyalty
-for all using (is_admin()) with check (is_admin());
+for all using (public.is_admin()) with check (public.is_admin());
 
 create policy "referrals_select_own_or_admin" on referrals
 for select using (
-  owns_profile(referrer_user_id) or owns_profile(referred_user_id) or is_admin()
+  public.owns_profile(referrer_user_id) or public.owns_profile(referred_user_id) or public.is_admin()
 );
 
 create policy "referrals_insert_own_referred" on referrals
-for insert with check (owns_profile(referred_user_id));
+for insert with check (public.owns_profile(referred_user_id));
 
 create policy "referrals_update_admin" on referrals
-for update using (is_admin()) with check (is_admin());
+for update using (public.is_admin()) with check (public.is_admin());
 
 create policy "credits_select_own_or_admin" on discount_credits
-for select using (owns_profile(user_id) or is_admin());
+for select using (public.owns_profile(user_id) or public.is_admin());
 
 create policy "credits_write_admin" on discount_credits
-for all using (is_admin()) with check (is_admin());
+for all using (public.is_admin()) with check (public.is_admin());
 
 create policy "settings_select_authenticated" on admin_settings
 for select using (auth.role() = 'authenticated');
 
 create policy "settings_write_admin" on admin_settings
-for all using (is_admin()) with check (is_admin());
+for all using (public.is_admin()) with check (public.is_admin());
 
 create policy "blocked_select_authenticated" on blocked_times
 for select using (auth.role() = 'authenticated');
 
 create policy "blocked_write_admin" on blocked_times
-for all using (is_admin()) with check (is_admin());
+for all using (public.is_admin()) with check (public.is_admin());
 
 insert into admin_settings default values;

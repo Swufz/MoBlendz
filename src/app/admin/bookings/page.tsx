@@ -41,7 +41,7 @@ export default async function AdminBookingsPage({
   }
   console.timeEnd("admin bookings profile role check");
 
-  const { q = "", status = "upcoming", page = "1" } = await searchParams;
+  const { q = "", status = "all", page = "1" } = await searchParams;
   const currentPage = Math.max(1, Number(page) || 1);
   const pageSize = 50;
   const from = (currentPage - 1) * pageSize;
@@ -111,6 +111,7 @@ export default async function AdminBookingsPage({
             defaultValue={status}
             className="h-11 rounded-full border border-line bg-background px-4"
           >
+            <option value="all">All latest</option>
             <option value="upcoming">Upcoming</option>
             {validStatuses.map((bookingStatus) => (
               <option key={bookingStatus} value={bookingStatus}>

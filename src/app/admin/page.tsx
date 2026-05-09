@@ -90,10 +90,10 @@ export default async function AdminPage() {
         ) : null}
 
         <section className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard icon={<DollarSign />} label="Total earnings" value={`$${stats.total_earnings}`} />
-          <StatCard icon={<CalendarCheck />} label="Completed cuts" value={stats.completed_haircuts} />
-          <StatCard icon={<Scissors />} label="Cut + beard" value={stats.haircut_beard_count} />
-          <StatCard icon={<UsersRound />} label="Customers" value={stats.active_customers} />
+          <StatCard icon={<DollarSign />} label="Total earnings" value={formatCurrency(stats.total_earnings)} />
+          <StatCard icon={<CalendarCheck />} label="Completed cuts" value={stats.completed_haircuts ?? 0} />
+          <StatCard icon={<Scissors />} label="Cut + beard" value={stats.haircut_beard_count ?? 0} />
+          <StatCard icon={<UsersRound />} label="Customers" value={stats.active_customers ?? 0} />
         </section>
 
         <section className="mt-6 rounded-[2rem] border border-line bg-surface p-5 shadow-sm">
@@ -134,6 +134,10 @@ export default async function AdminPage() {
       </main>
     </>
   );
+}
+
+function formatCurrency(value: number | string | null | undefined) {
+  return `$${Number(value ?? 0).toFixed(0)}`;
 }
 
 async function fetchDashboardStats(supabase: Awaited<ReturnType<typeof getSupabaseOrNull>>) {
