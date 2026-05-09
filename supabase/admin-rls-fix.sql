@@ -126,3 +126,6 @@ create unique index if not exists haircut_history_booking_id_uidx on public.hair
 create index if not exists referrals_referrer_user_id_idx on public.referrals(referrer_user_id);
 create index if not exists referrals_referred_user_id_idx on public.referrals(referred_user_id);
 create index if not exists discount_credits_user_id_idx on public.discount_credits(user_id);
+
+alter table public.bookings
+add column if not exists cancelled_at timestamptz;

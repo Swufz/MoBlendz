@@ -58,6 +58,7 @@ create table bookings (
   duration_minutes integer not null default 30,
   status booking_status not null default 'pending',
   notes text,
+  cancelled_at timestamptz,
   completed_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()

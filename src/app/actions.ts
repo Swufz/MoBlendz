@@ -242,6 +242,78 @@ export async function cancelBooking(bookingId: string) {
   revalidatePath("/profile");
 }
 
+export async function adminCancelBooking(bookingId: string) {
+  const supabase = await getConfiguredSupabaseClient();
+  if (!supabase) {
+    return { ok: false, message: "Supabase is not configured." };
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { ok: false, message: "You must be logged in as admin." };
+  }
+
+  const { data: adminProfile } = await supabase
+    .from("profiles")
+    .select("id, role")
+    .eq("auth_user_id", user.id)
+    .eq("role", "admin")
+    .maybeSingle<Pick<Profile, "id" | "role">>();
+
+  if (!adminProfile) {
+    return { ok: false, message: "Only admins can cancel bookings." };
+  }
+
+  const cancelledAt = new Date().toISOString();
+  const { data: updatedBooking, error } = await supabase
+    .from("bookings")
+    .update({
+      status: "cancelled",
+      cancelled_at: cancelledAt,
+      updated_at: cancelledAt,
+    })
+    .eq("id", bookingId)
+    .in("status", ["pending", "confirmed"])
+    .select("id")
+    .maybeSingle<{ id: string }>();
+
+  if (error) {
+    const fallback = await supabase
+      .from("bookings")
+      .update({
+        status: "cancelled",
+        updated_at: cancelledAt,
+      })
+      .eq("id", bookingId)
+      .in("status", ["pending", "confirmed"])
+      .select("id")
+      .maybeSingle<{ id: string }>();
+
+    if (fallback.error) {
+      return { ok: false, message: fallback.error.message };
+    }
+
+    if (!fallback.data) {
+      return {
+        ok: false,
+        message: "This booking is no longer active or was already cancelled.",
+      };
+    }
+  } else if (!updatedBooking) {
+    return {
+      ok: false,
+      message: "This booking is no longer active or was already cancelled.",
+    };
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/bookings");
+  return { ok: true, message: "Booking cancelled." };
+}
+
 export async function completeBooking(bookingId: string, formData: FormData) {
   const manualFinal = Number(formData.get("manualFinal") || NaN);
   const supabase = await getConfiguredSupabaseClient();
