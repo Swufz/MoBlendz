@@ -274,7 +274,18 @@ export async function completeBooking(bookingId: string, formData: FormData) {
     .maybeSingle<Booking>();
 
   if (bookingError || !booking) {
-    throw new Error(bookingError?.message ?? "Booking not found.");
+    return {
+      ok: false,
+      message: bookingError?.message ?? "Booking not found.",
+    };
+  }
+
+  if (booking.status === "completed") {
+    return {
+      ok: true,
+      message: "This booking was already completed. No changes were made.",
+      redirectTo: "/admin/bookings",
+    };
   }
 
   const settings = await getAdminSettings();
@@ -310,23 +321,37 @@ export async function completeBooking(bookingId: string, formData: FormData) {
   const finalPrice = Number.isFinite(manualFinal) ? manualFinal : summary.finalCashDue;
   const completedAt = new Date().toISOString();
 
-  const { error: updateError } = await supabase.from("bookings").update({
-    status: "completed",
-    final_price: finalPrice,
-    discount_type: summary.freeHaircutApplied
-      ? "free_haircut"
-      : summary.referralCreditApplied
-        ? "referral"
-        : "none",
-    discount_amount: summary.discountAmount,
-    completed_at: completedAt,
-  }).eq("id", booking.id);
+  const { data: updatedBooking, error: updateError } = await supabase
+    .from("bookings")
+    .update({
+      status: "completed",
+      final_price: finalPrice,
+      discount_type: summary.freeHaircutApplied
+        ? "free_haircut"
+        : summary.referralCreditApplied
+          ? "referral"
+          : "none",
+      discount_amount: summary.discountAmount,
+      completed_at: completedAt,
+    })
+    .eq("id", booking.id)
+    .neq("status", "completed")
+    .select("id")
+    .maybeSingle<{ id: string }>();
 
   if (updateError) {
-    throw new Error(updateError.message);
+    return { ok: false, message: updateError.message };
   }
 
-  await supabase.from("haircut_history").insert({
+  if (!updatedBooking) {
+    return {
+      ok: true,
+      message: "This booking was already completed. No loyalty or credits were changed.",
+      redirectTo: "/admin/bookings",
+    };
+  }
+
+  const { error: historyError } = await supabase.from("haircut_history").insert({
     user_id: booking.user_id,
     booking_id: booking.id,
     service_type: booking.service_type,
@@ -337,6 +362,18 @@ export async function completeBooking(bookingId: string, formData: FormData) {
     used_referral_credit: summary.referralCreditApplied,
     completed_at: completedAt,
   });
+
+  if (historyError) {
+    if (historyError.code === "23505") {
+      return {
+        ok: true,
+        message: "This booking already has haircut history. No duplicate progress was added.",
+        redirectTo: "/admin/bookings",
+      };
+    }
+
+    return { ok: false, message: historyError.message };
+  }
 
   await supabase.from("loyalty").upsert({
     user_id: booking.user_id,
@@ -361,7 +398,11 @@ export async function completeBooking(bookingId: string, formData: FormData) {
   revalidatePath("/admin");
   revalidatePath("/admin/bookings");
   revalidatePath(`/admin/bookings/${booking.id}/complete`);
-  redirect("/admin/bookings?completed=1");
+  return {
+    ok: true,
+    message: "Booking completed successfully.",
+    redirectTo: "/admin/bookings?completed=1",
+  };
 }
 
 async function rewardFirstCompletedReferral(userId: string, amount: number) {

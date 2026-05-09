@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { completeBooking } from "@/app/actions";
+import { CompleteBookingForm } from "@/components/complete-booking-form";
 import { SiteHeader } from "@/components/site-header";
 import { calculateCompletionSummary, formatBookingDate, formatBookingTime } from "@/lib/business-logic";
 import { getAdminSettings, getSessionProfile, getSupabaseOrNull } from "@/lib/data";
@@ -55,7 +55,6 @@ export default async function CompleteBookingPage({
     referralCredit: creditResponse.data,
     settings,
   });
-  const saveAction = completeBooking.bind(null, booking.id);
   const customer = booking.profiles as Profile | undefined;
 
   return (
@@ -102,24 +101,10 @@ export default async function CompleteBookingPage({
             />
           </dl>
 
-          <form action={saveAction} className="mt-6 space-y-4">
-            <label className="block">
-              <span className="text-sm font-medium text-muted">
-                Manual final cash override
-              </span>
-              <input
-                name="manualFinal"
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder={`${summary.finalCashDue}`}
-                className="mt-2 h-12 w-full rounded-2xl border border-line bg-background px-4"
-              />
-            </label>
-            <button className="h-12 w-full rounded-full bg-foreground px-5 font-semibold text-background">
-              Save completed booking
-            </button>
-          </form>
+          <CompleteBookingForm
+            bookingId={booking.id}
+            defaultFinalPrice={summary.finalCashDue}
+          />
         </section>
       </main>
     </>

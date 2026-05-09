@@ -99,20 +99,21 @@ security definer
 set search_path = public
 as $$
   select
-    coalesce(sum(h.final_price), 0) as total_earnings,
-    coalesce(sum(h.final_price) filter (
-      where h.completed_at >= date_trunc('month', now())
+    coalesce(sum(coalesce(b.final_price, b.base_price - b.discount_amount)), 0) as total_earnings,
+    coalesce(sum(coalesce(b.final_price, b.base_price - b.discount_amount)) filter (
+      where b.completed_at >= date_trunc('month', now())
     ), 0) as month_earnings,
-    count(h.id) as completed_haircuts,
-    count(h.id) filter (where h.service_type = 'haircut') as haircut_only_count,
-    count(h.id) filter (where h.service_type = 'haircut_beard') as haircut_beard_count,
+    count(b.id) as completed_haircuts,
+    count(b.id) filter (where b.service_type = 'haircut') as haircut_only_count,
+    count(b.id) filter (where b.service_type = 'haircut_beard') as haircut_beard_count,
     case
       when public.is_admin()
       then (select count(*) from public.profiles p where p.role = 'customer')
       else 0
     end as active_customers
-  from public.haircut_history h
-  where public.is_admin();
+  from public.bookings b
+  where public.is_admin()
+    and b.status = 'completed';
 $$;
 
 create index if not exists bookings_user_id_idx on public.bookings(user_id);
@@ -121,6 +122,7 @@ create index if not exists bookings_status_idx on public.bookings(status);
 create index if not exists profiles_auth_user_id_idx on public.profiles(auth_user_id);
 create index if not exists profiles_phone_idx on public.profiles(phone);
 create index if not exists haircut_history_user_id_idx on public.haircut_history(user_id);
+create unique index if not exists haircut_history_booking_id_uidx on public.haircut_history(booking_id);
 create index if not exists referrals_referrer_user_id_idx on public.referrals(referrer_user_id);
 create index if not exists referrals_referred_user_id_idx on public.referrals(referred_user_id);
 create index if not exists discount_credits_user_id_idx on public.discount_credits(user_id);
