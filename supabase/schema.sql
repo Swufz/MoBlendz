@@ -304,4 +304,40 @@ for select using (auth.role() = 'authenticated');
 create policy "blocked_write_admin" on blocked_times
 for all using (public.is_admin()) with check (public.is_admin());
 
+insert into storage.buckets (id, name, public)
+values ('avatars', 'avatars', true)
+on conflict (id) do update set public = true;
+
+drop policy if exists "avatars_public_read" on storage.objects;
+drop policy if exists "avatars_insert_own" on storage.objects;
+drop policy if exists "avatars_update_own" on storage.objects;
+drop policy if exists "avatars_delete_own_or_admin" on storage.objects;
+
+create policy "avatars_public_read" on storage.objects
+for select using (bucket_id = 'avatars');
+
+create policy "avatars_insert_own" on storage.objects
+for insert with check (
+  bucket_id = 'avatars'
+  and auth.uid()::text = (storage.foldername(name))[1]
+);
+
+create policy "avatars_update_own" on storage.objects
+for update using (
+  bucket_id = 'avatars'
+  and auth.uid()::text = (storage.foldername(name))[1]
+) with check (
+  bucket_id = 'avatars'
+  and auth.uid()::text = (storage.foldername(name))[1]
+);
+
+create policy "avatars_delete_own_or_admin" on storage.objects
+for delete using (
+  bucket_id = 'avatars'
+  and (
+    auth.uid()::text = (storage.foldername(name))[1]
+    or public.is_admin()
+  )
+);
+
 insert into admin_settings default values;

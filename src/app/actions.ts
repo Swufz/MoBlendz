@@ -25,6 +25,12 @@ const bookingSchema = z.object({
   phone: z.string().max(30).optional(),
 });
 
+const profileSchema = z.object({
+  fullName: z.string().trim().min(1, "Name is required.").max(120),
+  phone: z.string().trim().min(1, "Phone number is required."),
+  avatarUrl: z.string().url().optional().or(z.literal("")),
+});
+
 export async function signOut() {
   const supabase = await getConfiguredSupabaseClient();
   if (!supabase) {
@@ -314,6 +320,70 @@ export async function adminCancelBooking(bookingId: string) {
   return { ok: true, message: "Booking cancelled." };
 }
 
+export async function updateMyProfile(formData: FormData) {
+  const parsed = profileSchema.safeParse({
+    fullName: formData.get("fullName"),
+    phone: formData.get("phone"),
+    avatarUrl: formData.get("avatarUrl")?.toString() ?? "",
+  });
+
+  if (!parsed.success) {
+    return {
+      ok: false,
+      message: parsed.error.issues[0]?.message ?? "Profile details are invalid.",
+    };
+  }
+
+  const normalizedPhone = normalizeUsPhone(parsed.data.phone);
+  if (!normalizedPhone) {
+    return {
+      ok: false,
+      message: "Enter a valid 10-digit US phone number.",
+    };
+  }
+
+  const supabase = await getConfiguredSupabaseClient();
+  if (!supabase) {
+    return { ok: false, message: "Supabase is not configured." };
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { ok: false, message: "You must be logged in to edit your profile." };
+  }
+
+  const updatePayload: {
+    full_name: string;
+    phone: string;
+    updated_at: string;
+    avatar_url?: string;
+  } = {
+    full_name: parsed.data.fullName,
+    phone: normalizedPhone,
+    updated_at: new Date().toISOString(),
+  };
+
+  if (parsed.data.avatarUrl) {
+    updatePayload.avatar_url = parsed.data.avatarUrl;
+  }
+
+  const { error } = await supabase
+    .from("profiles")
+    .update(updatePayload)
+    .eq("auth_user_id", user.id);
+
+  if (error) {
+    return { ok: false, message: error.message };
+  }
+
+  revalidatePath("/");
+  revalidatePath("/profile");
+  return { ok: true, message: "Profile updated." };
+}
+
 export async function completeBooking(bookingId: string, formData: FormData) {
   const manualFinal = Number(formData.get("manualFinal") || NaN);
   const supabase = await getConfiguredSupabaseClient();
@@ -475,6 +545,19 @@ export async function completeBooking(bookingId: string, formData: FormData) {
     message: "Booking completed successfully.",
     redirectTo: "/admin/bookings?completed=1",
   };
+}
+
+function normalizeUsPhone(value: string) {
+  const digits = value.replace(/\D/g, "");
+  if (digits.length === 10) {
+    return digits;
+  }
+
+  if (digits.length === 11 && digits.startsWith("1")) {
+    return digits.slice(1);
+  }
+
+  return null;
 }
 
 async function rewardFirstCompletedReferral(userId: string, amount: number) {

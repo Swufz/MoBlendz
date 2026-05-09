@@ -4,6 +4,7 @@ import { CalendarDays, Gift, TicketPercent } from "lucide-react";
 import { cancelBooking } from "@/app/actions";
 import { LoyaltyTracker } from "@/components/loyalty-tracker";
 import { LogoutButton } from "@/components/logout-button";
+import { ProfileEditForm } from "@/components/profile-edit-form";
 import { SiteHeader } from "@/components/site-header";
 import { formatBookingDate, formatBookingTime } from "@/lib/business-logic";
 import {
@@ -37,20 +38,8 @@ export default async function ProfilePage() {
       <SiteHeader profile={profile} />
       <main className="mx-auto grid w-full max-w-6xl gap-5 px-4 py-8 lg:grid-cols-[0.8fr_1.2fr]">
         <section className="space-y-5">
-          <div className="rounded-[2rem] border border-line bg-surface p-5 shadow-sm">
-            <div className="flex items-center gap-4">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={profile.avatar_url ?? "/file.svg"}
-                alt=""
-                className="size-16 rounded-full object-cover"
-              />
-              <div>
-                <h1 className="text-2xl font-semibold">{profile.full_name}</h1>
-                <p className="text-sm text-muted">{profile.email}</p>
-                <p className="text-sm text-muted">{profile.phone ?? "Phone needed"}</p>
-              </div>
-            </div>
+          <div>
+            <ProfileEditForm profile={profile} />
             <LogoutButton
               className="mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-full border border-line bg-background px-4 text-sm font-semibold text-muted sm:hidden"
               showIcon
