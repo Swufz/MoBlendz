@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { CalendarDays, Menu, UserRound } from "lucide-react";
+import { LogoutButton } from "@/components/logout-button";
 import { BRAND_NAME } from "@/lib/config";
 import type { Profile } from "@/lib/types";
 
@@ -22,6 +23,9 @@ export function SiteHeader({ profile }: { profile?: Profile | null }) {
         </Link>
 
         <nav className="flex items-center gap-2">
+          {profile ? (
+            <LogoutButton className="hidden h-10 rounded-full border border-line bg-surface px-4 text-sm font-semibold text-muted transition hover:text-foreground sm:inline-flex sm:items-center" />
+          ) : null}
           <Link
             aria-label="Booking"
             href="/booking"
