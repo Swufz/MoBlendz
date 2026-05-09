@@ -1,5 +1,5 @@
 import { Scissors } from "lucide-react";
-import { signInWithGoogle } from "@/app/actions";
+import { GoogleSignInButton } from "@/components/google-sign-in-button";
 import { BRAND_NAME } from "@/lib/config";
 
 export default function LoginPage() {
@@ -13,11 +13,7 @@ export default function LoginPage() {
         <p className="mt-3 text-muted">
           Sign in to book, track loyalty progress, and manage your appointments.
         </p>
-        <form action={signInWithGoogle} className="mt-6">
-          <button className="h-12 w-full rounded-full bg-foreground px-5 font-semibold text-background">
-            Continue with Google
-          </button>
-        </form>
+        <GoogleSignInButton />
       </section>
     </main>
   );

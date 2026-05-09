@@ -22,26 +22,6 @@ const bookingSchema = z.object({
   notes: z.string().max(500).optional(),
 });
 
-export async function signInWithGoogle() {
-  const supabase = await getConfiguredSupabaseClient();
-  if (!supabase) {
-    throw new Error("Supabase is not configured. Add .env.local before signing in.");
-  }
-  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: "google",
-    options: {
-      redirectTo: `${origin}/auth/callback`,
-    },
-  });
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  redirect(data.url);
-}
-
 export async function signOut() {
   const supabase = await getConfiguredSupabaseClient();
   if (!supabase) {
