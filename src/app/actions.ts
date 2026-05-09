@@ -7,6 +7,8 @@ import { z } from "zod";
 import {
   calculateCompletionSummary,
   combineDateAndTime,
+  createReferralCode,
+  getDefaultAvatarUrl,
   isWithinBusinessHours,
   rangesOverlap,
 } from "@/lib/business-logic";
@@ -20,6 +22,7 @@ const bookingSchema = z.object({
   date: z.string().min(1),
   time: z.string().min(1),
   notes: z.string().max(500).optional(),
+  phone: z.string().max(30).optional(),
 });
 
 export async function signOut() {
@@ -37,6 +40,7 @@ export async function createBooking(formData: FormData) {
     date: formData.get("date"),
     time: formData.get("time"),
     notes: formData.get("notes")?.toString() ?? "",
+    phone: formData.get("phone")?.toString() ?? "",
   });
 
   if (!parsed.success) {
@@ -56,17 +60,65 @@ export async function createBooking(formData: FormData) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/login?next=/booking");
+    return { ok: false, authRequired: true, message: "Sign in with Google to book." };
   }
 
-  const { data: profile } = await supabase
+  const { data: existingProfile } = await supabase
     .from("profiles")
     .select("*")
     .eq("auth_user_id", user.id)
     .maybeSingle<Profile>();
 
+  const fullName =
+    user.user_metadata?.full_name ?? user.user_metadata?.name ?? "Mo Blendz Client";
+  const email = user.email ?? "";
+  const avatarUrl =
+    user.user_metadata?.avatar_url ??
+    user.user_metadata?.picture ??
+    getDefaultAvatarUrl(fullName);
+
+  let profile = existingProfile;
   if (!profile) {
-    redirect("/profile/setup");
+    const { data: insertedProfile, error: profileError } = await supabase
+      .from("profiles")
+      .insert({
+        auth_user_id: user.id,
+        full_name: fullName,
+        email,
+        phone: parsed.data.phone || null,
+        avatar_url: avatarUrl,
+        role: "customer",
+        referral_code: createReferralCode(`${fullName}${user.id}`),
+      })
+      .select("*")
+      .single<Profile>();
+
+    if (profileError) {
+      return { ok: false, message: profileError.message };
+    }
+
+    profile = insertedProfile;
+  } else if (parsed.data.phone && !profile.phone) {
+    const { data: updatedProfile, error: phoneError } = await supabase
+      .from("profiles")
+      .update({ phone: parsed.data.phone, updated_at: new Date().toISOString() })
+      .eq("id", profile.id)
+      .select("*")
+      .single<Profile>();
+
+    if (phoneError) {
+      return { ok: false, message: phoneError.message };
+    }
+
+    profile = updatedProfile;
+  }
+
+  if (!profile.phone) {
+    return {
+      ok: false,
+      phoneRequired: true,
+      message: "Add your phone number before confirming.",
+    };
   }
 
   const settings = await getAdminSettings();
@@ -108,7 +160,7 @@ export async function createBooking(formData: FormData) {
 
   const basePrice = getServicePrice(parsed.data.serviceType, settings);
 
-  const { error } = await supabase.from("bookings").insert({
+  const { data: booking, error } = await supabase.from("bookings").insert({
     user_id: profile.id,
     service_type: parsed.data.serviceType,
     base_price: basePrice,
@@ -119,7 +171,7 @@ export async function createBooking(formData: FormData) {
     duration_minutes: duration,
     status: "pending",
     notes: parsed.data.notes || null,
-  });
+  }).select("*").single<Booking>();
 
   if (error) {
     return { ok: false, message: error.message };
@@ -128,7 +180,17 @@ export async function createBooking(formData: FormData) {
   revalidatePath("/");
   revalidatePath("/booking");
   revalidatePath("/profile");
-  redirect("/profile?booked=1");
+  return {
+    ok: true,
+    booking: {
+      id: booking.id,
+      serviceType: booking.service_type,
+      dateTime: booking.date_time,
+      finalPrice: basePrice,
+      status: booking.status,
+      durationMinutes: booking.duration_minutes,
+    },
+  };
 }
 
 export async function cancelBooking(bookingId: string) {

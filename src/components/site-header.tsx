@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { CalendarDays, Menu, UserRound } from "lucide-react";
 import { BRAND_NAME } from "@/lib/config";
-import { signOut } from "@/app/actions";
 import type { Profile } from "@/lib/types";
 
 export function SiteHeader({ profile }: { profile?: Profile | null }) {
@@ -35,24 +34,22 @@ export function SiteHeader({ profile }: { profile?: Profile | null }) {
               Admin
             </Link>
           ) : null}
-          {profile ? (
-            <form action={signOut}>
-              <button
-                className="grid size-10 place-items-center overflow-hidden rounded-full bg-barber-blue text-foreground"
-                aria-label="Sign out"
-              >
-                <UserRound size={18} />
-              </button>
-            </form>
-          ) : (
-            <Link
-              href="/login"
-              aria-label="Login"
-              className="grid size-10 place-items-center rounded-full bg-barber-blue text-foreground"
-            >
+          <Link
+            href={profile ? "/profile" : "/login"}
+            aria-label={profile ? "Open profile" : "Login"}
+            className="grid size-10 place-items-center overflow-hidden rounded-full bg-barber-blue text-foreground"
+          >
+            {profile?.avatar_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={profile.avatar_url}
+                alt=""
+                className="size-full object-cover"
+              />
+            ) : (
               <UserRound size={18} />
-            </Link>
-          )}
+            )}
+          </Link>
         </nav>
       </div>
     </header>
