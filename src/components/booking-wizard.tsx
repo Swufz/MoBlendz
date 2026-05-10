@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { ArrowLeft, ArrowRight, Check, Scissors } from "lucide-react";
-import { createBooking } from "@/app/actions";
+import { createBooking, getBookingDayAvailability } from "@/app/actions";
 import {
   formatBookingDate,
   formatBookingTime,
@@ -56,15 +56,11 @@ export function BookingWizard({
   shouldResume = false,
   initialIsLoggedIn = false,
   weeklyAvailability,
-  blockedTimes = [],
-  activeBookings = [],
 }: {
   settings?: AdminSettings;
   shouldResume?: boolean;
   initialIsLoggedIn?: boolean;
   weeklyAvailability?: WeeklyAvailability[];
-  blockedTimes?: BlockedTime[];
-  activeBookings?: Booking[];
 }) {
   const [step, setStep] = useState(0);
   const [serviceType, setServiceType] = useState<ServiceType>("haircut");
@@ -76,6 +72,9 @@ export function BookingWizard({
   const [isLoggedIn, setIsLoggedIn] = useState(initialIsLoggedIn);
   const [completedBooking, setCompletedBooking] = useState<CompletedBooking | null>(null);
   const [isSigningIn, setIsSigningIn] = useState(false);
+  const [isLoadingAvailability, setIsLoadingAvailability] = useState(false);
+  const [blockedTimes, setBlockedTimes] = useState<BlockedTime[]>([]);
+  const [activeBookings, setActiveBookings] = useState<Booking[]>([]);
   const [isPending, startTransition] = useTransition();
   const isCreatingRef = useRef(false);
   const didResumeRef = useRef(false);
@@ -85,8 +84,9 @@ export function BookingWizard({
     return new Date(year, month - 1, day);
   }, [date]);
   const slots = useMemo(
-    () =>
-      getAvailableTimeSlots(selectedDate, serviceType, settings, weeklyAvailability)
+    () => {
+      console.time("generate slots");
+      const generatedSlots = getAvailableTimeSlots(selectedDate, serviceType, settings, weeklyAvailability)
         .filter((slot) =>
           isSlotVisible({
             slot,
@@ -97,7 +97,10 @@ export function BookingWizard({
             date,
           }),
         )
-        .slice(0, 18),
+        .slice(0, 18);
+      console.timeEnd("generate slots");
+      return generatedSlots;
+    },
     [activeBookings, blockedTimes, date, selectedDate, serviceType, settings, weeklyAvailability],
   );
   const price = getServicePrice(serviceType, settings);
@@ -130,6 +133,46 @@ export function BookingWizard({
     submitDraft(draft);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shouldResume]);
+
+  useEffect(() => {
+    let isCurrent = true;
+    // Sync selected-day availability with the server action.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsLoadingAvailability(true);
+    setTime("");
+
+    getBookingDayAvailability(date)
+      .then((result) => {
+        if (!isCurrent) {
+          return;
+        }
+
+        if (!result.ok) {
+          setMessage(result.message);
+        }
+
+        setBlockedTimes(result.blockedTimes);
+        setActiveBookings(result.activeBookings);
+      })
+      .catch((error) => {
+        if (!isCurrent) {
+          return;
+        }
+
+        setMessage(
+          error instanceof Error ? error.message : "Could not load availability.",
+        );
+      })
+      .finally(() => {
+        if (isCurrent) {
+          setIsLoadingAvailability(false);
+        }
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [date]);
 
   function applyDraft(draft: PendingBooking) {
     setServiceType(draft.serviceType);
@@ -336,7 +379,16 @@ export function BookingWizard({
             <div>
               <p className="text-sm font-medium text-muted">Available times</p>
               <div className="mt-2 grid grid-cols-3 gap-2">
-                {slots.length ? (
+                {isLoadingAvailability ? (
+                  <div className="col-span-3 grid grid-cols-3 gap-2">
+                    {Array.from({ length: 6 }).map((_, index) => (
+                      <div
+                        key={index}
+                        className="h-11 animate-pulse rounded-2xl border border-line bg-secondary-card"
+                      />
+                    ))}
+                  </div>
+                ) : slots.length ? (
                   slots.map((slot) => {
                     const value = slot.toTimeString().slice(0, 5);
                     return (

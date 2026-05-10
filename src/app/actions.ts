@@ -433,6 +433,92 @@ export async function updateMyProfile(formData: FormData) {
   return { ok: true, message: "Profile updated." };
 }
 
+export async function getBookingDayAvailability(date: string) {
+  const parsed = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).safeParse(date);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      message: "Invalid date.",
+      blockedTimes: [],
+      activeBookings: [],
+    };
+  }
+
+  const supabase = await getConfiguredSupabaseClient();
+  if (!supabase) {
+    return {
+      ok: true,
+      message: "Supabase is not configured.",
+      blockedTimes: [],
+      activeBookings: [],
+    };
+  }
+
+  const dayStart = combineDateAndTime(parsed.data, "00:00");
+  const dayEnd = addMinutes(dayStart, 24 * 60);
+
+  console.time("fetch blocked times");
+  const blockedTimesPromise = supabase
+    .from("blocked_times")
+    .select("id, date, start_time, end_time, all_day, reason, starts_at, ends_at, created_at, updated_at")
+    .or(
+      `date.eq.${parsed.data},and(starts_at.lt.${dayEnd.toISOString()},ends_at.gt.${dayStart.toISOString()})`,
+    )
+    .returns<{
+      id: string;
+      date?: string;
+      start_time?: string | null;
+      end_time?: string | null;
+      all_day?: boolean;
+      reason: string | null;
+      starts_at?: string | null;
+      ends_at?: string | null;
+      created_at?: string;
+      updated_at?: string;
+    }[]>();
+
+  console.time("fetch bookings");
+  const bookingsPromise = supabase
+    .from("bookings")
+    .select("id, user_id, service_type, base_price, final_price, discount_type, discount_amount, date_time, duration_minutes, status, notes, cancelled_at, completed_at, created_at, updated_at")
+    .in("status", ["pending", "confirmed"])
+    .gte("date_time", dayStart.toISOString())
+    .lt("date_time", dayEnd.toISOString())
+    .returns<Booking[]>();
+
+  const [blockedResult, bookingsResult] = await Promise.all([
+    blockedTimesPromise,
+    bookingsPromise,
+  ]);
+  console.timeEnd("fetch blocked times");
+  console.timeEnd("fetch bookings");
+
+  if (blockedResult.error) {
+    return {
+      ok: false,
+      message: blockedResult.error.message,
+      blockedTimes: [],
+      activeBookings: bookingsResult.data ?? [],
+    };
+  }
+
+  if (bookingsResult.error) {
+    return {
+      ok: false,
+      message: bookingsResult.error.message,
+      blockedTimes: blockedResult.data ?? [],
+      activeBookings: [],
+    };
+  }
+
+  return {
+    ok: true,
+    message: "Availability loaded.",
+    blockedTimes: blockedResult.data ?? [],
+    activeBookings: bookingsResult.data ?? [],
+  };
+}
+
 export async function saveWeeklyAvailability(formData: FormData) {
   const supabase = await getConfiguredSupabaseClient();
   if (!supabase) {

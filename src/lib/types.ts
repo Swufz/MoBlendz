@@ -100,8 +100,8 @@ export type BlockedTime = {
   start_time?: string | null;
   end_time?: string | null;
   all_day?: boolean;
-  starts_at?: string;
-  ends_at?: string;
+  starts_at?: string | null;
+  ends_at?: string | null;
   reason: string | null;
   created_at?: string;
   updated_at?: string;
