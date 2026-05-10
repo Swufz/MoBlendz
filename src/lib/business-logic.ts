@@ -15,6 +15,7 @@ import type {
   DiscountCredit,
   Loyalty,
   ServiceType,
+  WeeklyAvailability,
 } from "@/lib/types";
 
 const dayNames = [
@@ -40,8 +41,21 @@ export function getAvailableTimeSlots(
   date: Date,
   serviceType: ServiceType,
   settings: AdminSettings = defaultAdminSettings,
+  weeklyAvailability?: Pick<
+    WeeklyAvailability,
+    "day_of_week" | "is_available" | "start_time" | "end_time" | "break_start" | "break_end"
+  >[],
 ) {
-  const day = settings.business_hours[dayNames[getDay(date)]];
+  const weeklyDay = weeklyAvailability?.find((item) => item.day_of_week === getDay(date));
+  const day = weeklyDay
+    ? {
+        enabled: weeklyDay.is_available,
+        start: weeklyDay.start_time,
+        end: weeklyDay.end_time,
+        breakStart: weeklyDay.break_start,
+        breakEnd: weeklyDay.break_end,
+      }
+    : settings.business_hours[dayNames[getDay(date)]];
   if (!day?.enabled) {
     return [];
   }
@@ -52,10 +66,14 @@ export function getAvailableTimeSlots(
       : settings.haircut_beard_duration_minutes;
   const start = parse(day.start, "HH:mm", date);
   const end = parse(day.end, "HH:mm", date);
+  const breakStart = "breakStart" in day && day.breakStart ? parse(day.breakStart, "HH:mm", date) : null;
+  const breakEnd = "breakEnd" in day && day.breakEnd ? parse(day.breakEnd, "HH:mm", date) : null;
   const slots: Date[] = [];
 
   for (let slot = start; !isAfter(addMinutes(slot, duration), end); slot = addMinutes(slot, 15)) {
-    if (isAfter(slot, new Date())) {
+    const overlapsBreak =
+      breakStart && breakEnd ? slot < breakEnd && addMinutes(slot, duration) > breakStart : false;
+    if (isAfter(slot, new Date()) && !overlapsBreak) {
       slots.push(slot);
     }
   }
@@ -67,8 +85,21 @@ export function isWithinBusinessHours(
   startsAt: Date,
   durationMinutes: number,
   settings: AdminSettings,
+  weeklyAvailability?: Pick<
+    WeeklyAvailability,
+    "day_of_week" | "is_available" | "start_time" | "end_time" | "break_start" | "break_end"
+  >[],
 ) {
-  const day = settings.business_hours[dayNames[getDay(startsAt)]];
+  const weeklyDay = weeklyAvailability?.find((item) => item.day_of_week === getDay(startsAt));
+  const day = weeklyDay
+    ? {
+        enabled: weeklyDay.is_available,
+        start: weeklyDay.start_time,
+        end: weeklyDay.end_time,
+        breakStart: weeklyDay.break_start,
+        breakEnd: weeklyDay.break_end,
+      }
+    : settings.business_hours[dayNames[getDay(startsAt)]];
   if (!day?.enabled) {
     return false;
   }
@@ -76,8 +107,11 @@ export function isWithinBusinessHours(
   const dayStart = parse(day.start, "HH:mm", startsAt);
   const dayEnd = parse(day.end, "HH:mm", startsAt);
   const endsAt = addMinutes(startsAt, durationMinutes);
+  const breakStart = "breakStart" in day && day.breakStart ? parse(day.breakStart, "HH:mm", startsAt) : null;
+  const breakEnd = "breakEnd" in day && day.breakEnd ? parse(day.breakEnd, "HH:mm", startsAt) : null;
+  const overlapsBreak = breakStart && breakEnd ? startsAt < breakEnd && endsAt > breakStart : false;
 
-  return !isBefore(startsAt, dayStart) && !isAfter(endsAt, dayEnd);
+  return !isBefore(startsAt, dayStart) && !isAfter(endsAt, dayEnd) && !overlapsBreak;
 }
 
 export function rangesOverlap(

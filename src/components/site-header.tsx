@@ -26,6 +26,8 @@ const adminNavItems = [
   { href: "/admin/bookings", label: "Bookings", icon: CalendarDays },
   { href: "/admin/customers", label: "Customers", icon: UserRound },
   { href: "/admin/stats", label: "Stats", icon: Star },
+  { href: "/admin/settings", label: "Settings", icon: Scissors },
+  { href: "/admin/availability", label: "Availability", icon: CalendarDays },
 ];
 
 export function SiteHeader({ profile }: { profile?: Profile | null }) {

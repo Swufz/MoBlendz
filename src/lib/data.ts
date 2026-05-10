@@ -1,7 +1,7 @@
 import { unstable_noStore as noStore } from "next/cache";
-import { defaultAdminSettings } from "@/lib/config";
+import { defaultAdminSettings, defaultWeeklyAvailability } from "@/lib/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import type { AdminSettings, Booking, DiscountCredit, Loyalty, Profile } from "@/lib/types";
+import type { AdminSettings, BlockedTime, Booking, DiscountCredit, Loyalty, Profile, WeeklyAvailability } from "@/lib/types";
 
 export async function getSupabaseOrNull() {
   try {
@@ -109,6 +109,69 @@ export async function getUnusedReferralCredits(userId?: string | null) {
     .eq("status", "unused")
     .order("created_at", { ascending: true })
     .returns<DiscountCredit[]>();
+
+  return data ?? [];
+}
+
+export async function getWeeklyAvailability() {
+  noStore();
+  const supabase = await getSupabaseOrNull();
+  if (!supabase) {
+    return defaultWeeklyAvailability.map((item, index) => ({
+      ...item,
+      id: `default-${index}`,
+      created_at: new Date(0).toISOString(),
+      updated_at: new Date(0).toISOString(),
+    })) satisfies WeeklyAvailability[];
+  }
+
+  const { data } = await supabase
+    .from("weekly_availability")
+    .select("id, day_of_week, is_available, start_time, end_time, break_start, break_end, created_at, updated_at")
+    .order("day_of_week", { ascending: true })
+    .returns<WeeklyAvailability[]>();
+
+  if (data?.length) {
+    return data;
+  }
+
+  return defaultWeeklyAvailability.map((item, index) => ({
+    ...item,
+    id: `default-${index}`,
+    created_at: new Date(0).toISOString(),
+    updated_at: new Date(0).toISOString(),
+  })) satisfies WeeklyAvailability[];
+}
+
+export async function getBlockedTimes() {
+  noStore();
+  const supabase = await getSupabaseOrNull();
+  if (!supabase) {
+    return [];
+  }
+
+  const { data } = await supabase
+    .from("blocked_times")
+    .select("id, date, start_time, end_time, all_day, reason, starts_at, ends_at, created_at, updated_at")
+    .order("date", { ascending: true })
+    .returns<BlockedTime[]>();
+
+  return data ?? [];
+}
+
+export async function getActiveBookingsForAvailability() {
+  noStore();
+  const supabase = await getSupabaseOrNull();
+  if (!supabase) {
+    return [];
+  }
+
+  const { data } = await supabase
+    .from("bookings")
+    .select("id, user_id, service_type, base_price, final_price, discount_type, discount_amount, date_time, duration_minutes, status, notes, cancelled_at, completed_at, created_at, updated_at")
+    .in("status", ["pending", "confirmed"])
+    .gte("date_time", new Date().toISOString())
+    .returns<Booking[]>();
 
   return data ?? [];
 }

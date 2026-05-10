@@ -31,6 +31,27 @@ const profileSchema = z.object({
   avatarUrl: z.string().url().optional().or(z.literal("")),
 });
 
+const weeklyAvailabilitySchema = z.object({
+  days: z.array(
+    z.object({
+      day_of_week: z.number().int().min(0).max(6),
+      is_available: z.boolean(),
+      start_time: z.string().regex(/^\d{2}:\d{2}$/),
+      end_time: z.string().regex(/^\d{2}:\d{2}$/),
+      break_start: z.string().regex(/^\d{2}:\d{2}$/).optional().or(z.literal("")),
+      break_end: z.string().regex(/^\d{2}:\d{2}$/).optional().or(z.literal("")),
+    }),
+  ),
+});
+
+const blockedTimeSchema = z.object({
+  date: z.string().min(1),
+  start_time: z.string().optional(),
+  end_time: z.string().optional(),
+  all_day: z.boolean(),
+  reason: z.string().max(200).optional(),
+});
+
 export async function signOut() {
   const supabase = await getConfiguredSupabaseClient();
   if (!supabase) {
@@ -128,10 +149,12 @@ export async function createBooking(formData: FormData) {
   }
 
   const settings = await getAdminSettings();
+  const { getWeeklyAvailability } = await import("@/lib/data");
+  const weeklyAvailability = await getWeeklyAvailability();
   const startsAt = combineDateAndTime(parsed.data.date, parsed.data.time);
   const duration = getServiceDuration(parsed.data.serviceType, settings);
 
-  if (!isWithinBusinessHours(startsAt, duration, settings)) {
+  if (!isWithinBusinessHours(startsAt, duration, settings, weeklyAvailability)) {
     return { ok: false, message: "That time is outside available business hours." };
   }
 
@@ -145,10 +168,18 @@ export async function createBooking(formData: FormData) {
       .returns<Booking[]>(),
     supabase
       .from("blocked_times")
-      .select("*")
-      .lt("starts_at", rangeEnd)
-      .gt("ends_at", startsAt.toISOString())
-      .returns<{ starts_at: string; ends_at: string }[]>(),
+      .select("date, start_time, end_time, all_day, starts_at, ends_at")
+      .or(
+        `and(date.eq.${parsed.data.date}),and(starts_at.lt.${rangeEnd},ends_at.gt.${startsAt.toISOString()})`,
+      )
+      .returns<{
+        date?: string;
+        start_time?: string | null;
+        end_time?: string | null;
+        all_day?: boolean;
+        starts_at?: string | null;
+        ends_at?: string | null;
+      }[]>(),
   ]);
 
   const hasConflict = (possibleConflicts ?? []).some((booking) =>
@@ -160,7 +191,25 @@ export async function createBooking(formData: FormData) {
     ),
   );
 
-  if (hasConflict || (blockedTimes?.length ?? 0) > 0) {
+  const isBlocked = (blockedTimes ?? []).some((block) => {
+    if (block.starts_at && block.ends_at) {
+      return rangesOverlap(startsAt, duration, new Date(block.starts_at), (new Date(block.ends_at).getTime() - new Date(block.starts_at).getTime()) / 60000);
+    }
+
+    if (block.all_day) {
+      return true;
+    }
+
+    if (block.start_time && block.end_time) {
+      const blockStart = combineDateAndTime(parsed.data.date, block.start_time.slice(0, 5));
+      const blockEnd = combineDateAndTime(parsed.data.date, block.end_time.slice(0, 5));
+      return rangesOverlap(startsAt, duration, blockStart, (blockEnd.getTime() - blockStart.getTime()) / 60000);
+    }
+
+    return false;
+  });
+
+  if (hasConflict || isBlocked) {
     return { ok: false, message: "That time is unavailable. Pick another slot." };
   }
 
@@ -382,6 +431,137 @@ export async function updateMyProfile(formData: FormData) {
   revalidatePath("/");
   revalidatePath("/profile");
   return { ok: true, message: "Profile updated." };
+}
+
+export async function saveWeeklyAvailability(formData: FormData) {
+  const supabase = await getConfiguredSupabaseClient();
+  if (!supabase) {
+    return { ok: false, message: "Supabase is not configured." };
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false, message: "You must be logged in as admin." };
+  }
+
+  const { data: adminProfile } = await supabase
+    .from("profiles")
+    .select("id, role")
+    .eq("auth_user_id", user.id)
+    .eq("role", "admin")
+    .maybeSingle<Pick<Profile, "id" | "role">>();
+
+  if (!adminProfile) {
+    return { ok: false, message: "Only admins can update availability." };
+  }
+
+  const days = Array.from({ length: 7 }).map((_, day) => ({
+    day_of_week: day,
+    is_available: formData.get(`day-${day}-available`) === "on",
+    start_time: formData.get(`day-${day}-start`)?.toString() ?? "15:00",
+    end_time: formData.get(`day-${day}-end`)?.toString() ?? "20:00",
+    break_start: formData.get(`day-${day}-break-start`)?.toString() ?? "",
+    break_end: formData.get(`day-${day}-break-end`)?.toString() ?? "",
+  }));
+
+  const parsed = weeklyAvailabilitySchema.safeParse({ days });
+  if (!parsed.success) {
+    return { ok: false, message: "Availability details are invalid." };
+  }
+
+  const now = new Date().toISOString();
+  const { error } = await supabase.from("weekly_availability").upsert(
+    parsed.data.days.map((day) => ({
+      ...day,
+      break_start: day.break_start || null,
+      break_end: day.break_end || null,
+      updated_at: now,
+    })),
+    { onConflict: "day_of_week" },
+  );
+
+  if (error) {
+    return { ok: false, message: error.message };
+  }
+
+  revalidatePath("/admin/availability");
+  revalidatePath("/booking");
+  return { ok: true, message: "Weekly availability saved." };
+}
+
+export async function addBlockedTime(formData: FormData) {
+  const supabase = await getConfiguredSupabaseClient();
+  if (!supabase) {
+    return { ok: false, message: "Supabase is not configured." };
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false, message: "You must be logged in as admin." };
+  }
+
+  const { data: adminProfile } = await supabase
+    .from("profiles")
+    .select("id, role")
+    .eq("auth_user_id", user.id)
+    .eq("role", "admin")
+    .maybeSingle<Pick<Profile, "id" | "role">>();
+
+  if (!adminProfile) {
+    return { ok: false, message: "Only admins can block time." };
+  }
+
+  const parsed = blockedTimeSchema.safeParse({
+    date: formData.get("date"),
+    start_time: formData.get("start_time")?.toString() ?? "",
+    end_time: formData.get("end_time")?.toString() ?? "",
+    all_day: formData.get("all_day") === "on",
+    reason: formData.get("reason")?.toString() ?? "",
+  });
+
+  if (!parsed.success) {
+    return { ok: false, message: "Blocked time details are invalid." };
+  }
+
+  if (!parsed.data.all_day && (!parsed.data.start_time || !parsed.data.end_time)) {
+    return { ok: false, message: "Choose start and end time, or mark all day." };
+  }
+
+  const { error } = await supabase.from("blocked_times").insert({
+    date: parsed.data.date,
+    start_time: parsed.data.all_day ? null : parsed.data.start_time,
+    end_time: parsed.data.all_day ? null : parsed.data.end_time,
+    all_day: parsed.data.all_day,
+    reason: parsed.data.reason || null,
+  });
+
+  if (error) {
+    return { ok: false, message: error.message };
+  }
+
+  revalidatePath("/admin/availability");
+  revalidatePath("/booking");
+  return { ok: true, message: "Blocked time added." };
+}
+
+export async function deleteBlockedTime(blockedTimeId: string) {
+  const supabase = await getConfiguredSupabaseClient();
+  if (!supabase) {
+    return { ok: false, message: "Supabase is not configured." };
+  }
+
+  const { error } = await supabase.from("blocked_times").delete().eq("id", blockedTimeId);
+  if (error) {
+    return { ok: false, message: error.message };
+  }
+
+  revalidatePath("/admin/availability");
+  revalidatePath("/booking");
+  return { ok: true, message: "Blocked time removed." };
 }
 
 export async function completeBooking(bookingId: string, formData: FormData) {

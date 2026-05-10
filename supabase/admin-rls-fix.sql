@@ -130,6 +130,76 @@ create index if not exists discount_credits_user_id_idx on public.discount_credi
 alter table public.bookings
 add column if not exists cancelled_at timestamptz;
 
+create table if not exists public.weekly_availability (
+  id uuid primary key default gen_random_uuid(),
+  day_of_week integer not null unique check (day_of_week between 0 and 6),
+  is_available boolean not null default false,
+  start_time time not null default '15:00',
+  end_time time not null default '20:00',
+  break_start time,
+  break_end time,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint weekly_availability_time_order check (end_time > start_time),
+  constraint weekly_availability_break_order check (
+    break_start is null
+    or break_end is null
+    or break_end > break_start
+  )
+);
+
+alter table public.weekly_availability enable row level security;
+
+drop policy if exists "weekly_availability_select_authenticated" on public.weekly_availability;
+drop policy if exists "weekly_availability_write_admin" on public.weekly_availability;
+
+create policy "weekly_availability_select_authenticated" on public.weekly_availability
+for select using (auth.role() in ('anon', 'authenticated'));
+
+create policy "weekly_availability_write_admin" on public.weekly_availability
+for all using (public.is_admin()) with check (public.is_admin());
+
+insert into public.weekly_availability (day_of_week, is_available, start_time, end_time)
+values
+  (0, false, '10:00', '18:00'),
+  (1, true, '15:00', '20:00'),
+  (2, true, '15:00', '20:00'),
+  (3, true, '15:00', '20:00'),
+  (4, true, '15:00', '20:00'),
+  (5, true, '15:00', '20:00'),
+  (6, true, '10:00', '18:00')
+on conflict (day_of_week) do nothing;
+
+alter table public.blocked_times
+add column if not exists date date;
+
+alter table public.blocked_times
+add column if not exists start_time time;
+
+alter table public.blocked_times
+add column if not exists end_time time;
+
+alter table public.blocked_times
+add column if not exists all_day boolean not null default false;
+
+alter table public.blocked_times
+add column if not exists updated_at timestamptz not null default now();
+
+alter table public.blocked_times
+alter column starts_at drop not null;
+
+alter table public.blocked_times
+alter column ends_at drop not null;
+
+drop policy if exists "blocked_select_authenticated" on public.blocked_times;
+drop policy if exists "blocked_write_admin" on public.blocked_times;
+
+create policy "blocked_select_authenticated" on public.blocked_times
+for select using (auth.role() in ('anon', 'authenticated'));
+
+create policy "blocked_write_admin" on public.blocked_times
+for all using (public.is_admin()) with check (public.is_admin());
+
 insert into storage.buckets (id, name, public)
 values ('avatars', 'avatars', true)
 on conflict (id) do update set public = true;

@@ -80,6 +80,9 @@ export default async function AdminPage() {
             <Link className="rounded-full bg-surface px-4 py-2 text-sm font-semibold ring-1 ring-line" href="/admin/stats">
               Stats
             </Link>
+            <Link className="rounded-full bg-surface px-4 py-2 text-sm font-semibold ring-1 ring-line" href="/admin/availability">
+              Availability
+            </Link>
           </div>
         </div>
 

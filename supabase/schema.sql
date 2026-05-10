@@ -129,11 +129,37 @@ create index discount_credits_user_status_idx on discount_credits(user_id, statu
 
 create table blocked_times (
   id uuid primary key default gen_random_uuid(),
-  starts_at timestamptz not null,
-  ends_at timestamptz not null,
+  date date,
+  start_time time,
+  end_time time,
+  all_day boolean not null default false,
+  starts_at timestamptz,
+  ends_at timestamptz,
   reason text,
+  updated_at timestamptz not null default now(),
   created_at timestamptz not null default now(),
-  constraint blocked_time_positive check (ends_at > starts_at)
+  constraint blocked_time_positive check (
+    (starts_at is null and ends_at is null)
+    or ends_at > starts_at
+  )
+);
+
+create table weekly_availability (
+  id uuid primary key default gen_random_uuid(),
+  day_of_week integer not null unique check (day_of_week between 0 and 6),
+  is_available boolean not null default false,
+  start_time time not null default '15:00',
+  end_time time not null default '20:00',
+  break_start time,
+  break_end time,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint weekly_availability_time_order check (end_time > start_time),
+  constraint weekly_availability_break_order check (
+    break_start is null
+    or break_end is null
+    or break_end > break_start
+  )
 );
 
 create or replace function public.is_admin()
@@ -206,6 +232,7 @@ alter table referrals enable row level security;
 alter table discount_credits enable row level security;
 alter table admin_settings enable row level security;
 alter table blocked_times enable row level security;
+alter table weekly_availability enable row level security;
 
 drop policy if exists "profiles_select_own_or_admin" on profiles;
 drop policy if exists "profiles_update_own_phone_or_admin" on profiles;
@@ -299,10 +326,27 @@ create policy "settings_write_admin" on admin_settings
 for all using (public.is_admin()) with check (public.is_admin());
 
 create policy "blocked_select_authenticated" on blocked_times
-for select using (auth.role() = 'authenticated');
+for select using (auth.role() in ('anon', 'authenticated'));
 
 create policy "blocked_write_admin" on blocked_times
 for all using (public.is_admin()) with check (public.is_admin());
+
+create policy "weekly_availability_select_authenticated" on weekly_availability
+for select using (auth.role() in ('anon', 'authenticated'));
+
+create policy "weekly_availability_write_admin" on weekly_availability
+for all using (public.is_admin()) with check (public.is_admin());
+
+insert into weekly_availability (day_of_week, is_available, start_time, end_time)
+values
+  (0, false, '10:00', '18:00'),
+  (1, true, '15:00', '20:00'),
+  (2, true, '15:00', '20:00'),
+  (3, true, '15:00', '20:00'),
+  (4, true, '15:00', '20:00'),
+  (5, true, '15:00', '20:00'),
+  (6, true, '10:00', '18:00')
+on conflict (day_of_week) do nothing;
 
 insert into storage.buckets (id, name, public)
 values ('avatars', 'avatars', true)

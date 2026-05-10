@@ -1,4 +1,4 @@
-import type { AdminSettings, BusinessHours, ServiceType } from "@/lib/types";
+import type { AdminSettings, BusinessHours, ServiceType, WeeklyAvailability } from "@/lib/types";
 
 export const BRAND_NAME = "MoBlendz";
 
@@ -11,6 +11,19 @@ export const defaultBusinessHours: BusinessHours = {
   saturday: { enabled: true, start: "10:00", end: "16:00" },
   sunday: { enabled: false, start: "10:00", end: "16:00" },
 };
+
+export const defaultWeeklyAvailability: Omit<
+  WeeklyAvailability,
+  "id" | "created_at" | "updated_at"
+>[] = [
+  { day_of_week: 0, is_available: false, start_time: "10:00", end_time: "18:00", break_start: null, break_end: null },
+  { day_of_week: 1, is_available: true, start_time: "15:00", end_time: "20:00", break_start: null, break_end: null },
+  { day_of_week: 2, is_available: true, start_time: "15:00", end_time: "20:00", break_start: null, break_end: null },
+  { day_of_week: 3, is_available: true, start_time: "15:00", end_time: "20:00", break_start: null, break_end: null },
+  { day_of_week: 4, is_available: true, start_time: "15:00", end_time: "20:00", break_start: null, break_end: null },
+  { day_of_week: 5, is_available: true, start_time: "15:00", end_time: "20:00", break_start: null, break_end: null },
+  { day_of_week: 6, is_available: true, start_time: "10:00", end_time: "18:00", break_start: null, break_end: null },
+];
 
 export const defaultAdminSettings: AdminSettings = {
   id: "default",

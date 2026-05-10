@@ -16,6 +16,7 @@ import {
 } from "@/lib/config";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { AdminSettings, BookingStatus, ServiceType } from "@/lib/types";
+import type { BlockedTime, Booking, WeeklyAvailability } from "@/lib/types";
 
 const services: ServiceType[] = ["haircut", "haircut_beard"];
 const pendingBookingKey = "mo-blendz-pending-booking";
@@ -54,10 +55,16 @@ export function BookingWizard({
   settings = defaultAdminSettings,
   shouldResume = false,
   initialIsLoggedIn = false,
+  weeklyAvailability,
+  blockedTimes = [],
+  activeBookings = [],
 }: {
   settings?: AdminSettings;
   shouldResume?: boolean;
   initialIsLoggedIn?: boolean;
+  weeklyAvailability?: WeeklyAvailability[];
+  blockedTimes?: BlockedTime[];
+  activeBookings?: Booking[];
 }) {
   const [step, setStep] = useState(0);
   const [serviceType, setServiceType] = useState<ServiceType>("haircut");
@@ -78,8 +85,20 @@ export function BookingWizard({
     return new Date(year, month - 1, day);
   }, [date]);
   const slots = useMemo(
-    () => getAvailableTimeSlots(selectedDate, serviceType, settings).slice(0, 18),
-    [selectedDate, serviceType, settings],
+    () =>
+      getAvailableTimeSlots(selectedDate, serviceType, settings, weeklyAvailability)
+        .filter((slot) =>
+          isSlotVisible({
+            slot,
+            serviceType,
+            settings,
+            blockedTimes,
+            activeBookings,
+            date,
+          }),
+        )
+        .slice(0, 18),
+    [activeBookings, blockedTimes, date, selectedDate, serviceType, settings, weeklyAvailability],
   );
   const price = getServicePrice(serviceType, settings);
   const duration = getServiceDuration(serviceType, settings);
@@ -581,4 +600,66 @@ function readCompletedBooking() {
   } catch {
     return null;
   }
+}
+
+function isSlotVisible({
+  activeBookings,
+  blockedTimes,
+  date,
+  serviceType,
+  settings,
+  slot,
+}: {
+  activeBookings: Booking[];
+  blockedTimes: BlockedTime[];
+  date: string;
+  serviceType: ServiceType;
+  settings: AdminSettings;
+  slot: Date;
+}) {
+  const duration = getServiceDuration(serviceType, settings);
+
+  const overlapsBooking = activeBookings.some((booking) =>
+    slot < addMinutesLocal(new Date(booking.date_time), booking.duration_minutes) &&
+    addMinutesLocal(slot, duration) > new Date(booking.date_time),
+  );
+
+  if (overlapsBooking) {
+    return false;
+  }
+
+  return !blockedTimes.some((block) => {
+    if (block.starts_at && block.ends_at) {
+      return (
+        slot < new Date(block.ends_at) &&
+        addMinutesLocal(slot, duration) > new Date(block.starts_at)
+      );
+    }
+
+    if (block.date !== date) {
+      return false;
+    }
+
+    if (block.all_day) {
+      return true;
+    }
+
+    if (!block.start_time || !block.end_time) {
+      return false;
+    }
+
+    const blockStart = buildDateTime(date, block.start_time);
+    const blockEnd = buildDateTime(date, block.end_time);
+    return slot < blockEnd && addMinutesLocal(slot, duration) > blockStart;
+  });
+}
+
+function buildDateTime(date: string, time: string) {
+  const [year, month, day] = date.split("-").map(Number);
+  const [hours, minutes] = time.slice(0, 5).split(":").map(Number);
+  return new Date(year, month - 1, day, hours, minutes, 0, 0);
+}
+
+function addMinutesLocal(date: Date, minutes: number) {
+  return new Date(date.getTime() + minutes * 60_000);
 }

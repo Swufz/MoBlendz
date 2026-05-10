@@ -96,9 +96,27 @@ export type BusinessHours = Record<
 
 export type BlockedTime = {
   id: string;
-  starts_at: string;
-  ends_at: string;
+  date?: string;
+  start_time?: string | null;
+  end_time?: string | null;
+  all_day?: boolean;
+  starts_at?: string;
+  ends_at?: string;
   reason: string | null;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type WeeklyAvailability = {
+  id: string;
+  day_of_week: number;
+  is_available: boolean;
+  start_time: string;
+  end_time: string;
+  break_start: string | null;
+  break_end: string | null;
+  created_at: string;
+  updated_at: string;
 };
 
 export type CompletionSummary = {
