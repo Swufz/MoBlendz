@@ -68,12 +68,9 @@ function LoggedOutHome({ paidNeeded }: { paidNeeded: number }) {
               <span className="inline-flex rounded-full border border-gold/35 bg-gold/10 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-gold">
                 Private barber appointments
               </span>
-              <h1 className="font-brand mt-5 text-7xl leading-none text-foreground sm:text-8xl">
-                MoBlendz
-              </h1>
-              <p className="mt-1 text-3xl font-black tracking-tight text-foreground sm:text-5xl">
+              <h1 className="mt-5 text-3xl font-black tracking-tight text-foreground sm:text-5xl">
                 Private cuts by appointment.
-              </p>
+              </h1>
               <p className="mt-5 max-w-lg text-base leading-7 text-muted">
                 Choose your service, pick a time, and pay cash when you arrive.
               </p>
