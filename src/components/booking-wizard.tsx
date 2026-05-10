@@ -116,6 +116,9 @@ export function BookingWizard({
   );
   const price = getServicePrice(serviceType, settings);
   const duration = getServiceDuration(serviceType, settings);
+  const referralDiscountAmount = isReferralValid
+    ? Math.min(Number(settings.referral_discount_amount ?? 5), price)
+    : 0;
 
   useEffect(() => {
     const savedConfirmation = readCompletedBooking();
@@ -494,6 +497,7 @@ export function BookingWizard({
             notes={notes}
             price={price}
             referralCode={referralCode}
+            referralDiscountAmount={referralDiscountAmount}
             referralMessage={referralMessage}
             serviceType={serviceType}
             setReferralCode={setReferralCode}
@@ -592,6 +596,7 @@ function BookingReview({
   notes,
   price,
   referralCode,
+  referralDiscountAmount,
   referralMessage,
   serviceType,
   setReferralCode,
@@ -605,6 +610,7 @@ function BookingReview({
   notes: string;
   price: number;
   referralCode: string;
+  referralDiscountAmount: number;
   referralMessage: string;
   serviceType: ServiceType;
   setReferralCode: (referralCode: string) => void;
@@ -613,6 +619,8 @@ function BookingReview({
   isCheckingReferral: boolean;
   isReferralValid: boolean;
 }) {
+  const cashDue = Math.max(0, price - referralDiscountAmount);
+
   return (
     <div className="space-y-4">
       <div className="rounded-3xl border border-line bg-background p-4">
@@ -665,13 +673,32 @@ function BookingReview({
               isReferralValid ? "text-success" : "text-danger"
             }`}
           >
-            {isReferralValid ? `Referral code applied: ${referralCode}` : referralMessage}
+            {isReferralValid
+              ? referralMessage.includes("already linked")
+                ? referralMessage
+                : `Referral discount applied: -$${referralDiscountAmount}`
+              : referralMessage}
           </p>
         ) : null}
       </div>
       <div className="rounded-3xl border border-gold/40 bg-gold/10 p-5">
-        <p className="text-sm text-muted">Cash due</p>
-        <p className="text-3xl font-black text-gold">${price}</p>
+        <p className="text-sm text-muted">Price breakdown</p>
+        <div className="mt-4 grid gap-2 text-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-muted">Service price</span>
+            <span className="font-bold">${price}</span>
+          </div>
+          {referralDiscountAmount > 0 ? (
+            <div className="flex items-center justify-between text-success">
+              <span className="font-bold">Referral discount applied</span>
+              <span className="font-black">-${referralDiscountAmount}</span>
+            </div>
+          ) : null}
+        </div>
+        <div className="mt-4 border-t border-gold/25 pt-4">
+          <p className="text-sm text-muted">Cash due</p>
+          <p className="text-3xl font-black text-gold">${cashDue}</p>
+        </div>
         <p className="mt-1 text-sm text-muted">{duration} minute appointment</p>
       </div>
     </div>

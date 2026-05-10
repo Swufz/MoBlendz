@@ -49,12 +49,22 @@ export default async function CompleteBookingPage({
       paid_haircuts_since_last_free: 0,
       free_haircuts_available: 0,
     } as Loyalty);
+  const hasBookingReferralDiscount =
+    booking.discount_type === "referral" && Number(booking.discount_amount) > 0;
   const summary = calculateCompletionSummary({
     booking,
     loyalty,
-    referralCredit: creditResponse.data,
+    referralCredit: hasBookingReferralDiscount ? null : creditResponse.data,
     settings,
   });
+  const referralDiscountAmount =
+    hasBookingReferralDiscount && !summary.freeHaircutApplied
+      ? Number(booking.discount_amount)
+      : summary.referralCreditAmount;
+  const finalCashDue =
+    hasBookingReferralDiscount && !summary.freeHaircutApplied
+      ? Math.max(0, Number(booking.base_price) - referralDiscountAmount)
+      : summary.finalCashDue;
   const customer = booking.profiles as Profile | undefined;
 
   return (
@@ -89,12 +99,14 @@ export default async function CompleteBookingPage({
             <SummaryRow
               label="Referral credit applied"
               value={
-                summary.referralCreditApplied
-                  ? `$${summary.referralCreditAmount} credit`
+                hasBookingReferralDiscount
+                  ? `$${referralDiscountAmount} referral discount`
+                  : summary.referralCreditApplied
+                    ? `$${summary.referralCreditAmount} credit`
                   : "No referral credit"
               }
             />
-            <SummaryRow label="Final cash amount due" value={`$${summary.finalCashDue}`} strong />
+            <SummaryRow label="Final cash amount due" value={`$${finalCashDue}`} strong />
             <SummaryRow
               label="Updated loyalty progress after completion"
               value={`${summary.loyaltyAfter}/${settings.loyalty_required_haircuts - 1} paid cuts`}
@@ -103,7 +115,7 @@ export default async function CompleteBookingPage({
 
           <CompleteBookingForm
             bookingId={booking.id}
-            defaultFinalPrice={summary.finalCashDue}
+            defaultFinalPrice={finalCashDue}
           />
         </section>
       </main>

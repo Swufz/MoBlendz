@@ -147,11 +147,17 @@ export async function createBooking(formData: FormData) {
   }
 
   const referralCode = normalizeReferralCode(parsed.data.referralCode ?? "");
+  let referralDiscountEligible = false;
   if (referralCode) {
     const referralResult = await linkReferralCodeForCurrentUser(referralCode);
     if (!referralResult.ok) {
       return { ok: false, message: referralResult.message };
     }
+
+    referralDiscountEligible = !(await hasUsedReferralBookingDiscount(
+      supabase,
+      profile.id,
+    ));
   }
 
   if (!profile.phone) {
@@ -193,14 +199,18 @@ export async function createBooking(formData: FormData) {
   }
 
   const basePrice = getServicePrice(parsed.data.serviceType, settings);
+  const discountAmount = referralDiscountEligible
+    ? Math.min(Number(settings.referral_discount_amount ?? 5), basePrice)
+    : 0;
+  const finalPrice = Math.max(0, basePrice - discountAmount);
 
   const { data: booking, error } = await supabase.from("bookings").insert({
     user_id: profile.id,
     service_type: parsed.data.serviceType,
     base_price: basePrice,
-    final_price: null,
-    discount_type: "none",
-    discount_amount: 0,
+    final_price: finalPrice,
+    discount_type: referralDiscountEligible ? "referral" : "none",
+    discount_amount: discountAmount,
     date_time: startsAt.toISOString(),
     duration_minutes: duration,
     status: "pending",
@@ -220,7 +230,7 @@ export async function createBooking(formData: FormData) {
       id: booking.id,
       serviceType: booking.service_type,
       dateTime: booking.date_time,
-      finalPrice: basePrice,
+      finalPrice,
       status: booking.status,
       durationMinutes: booking.duration_minutes,
     },
@@ -259,6 +269,22 @@ export async function validateReferralCode(referralCode: string) {
     }
 
     if (profile?.referred_by_user_id) {
+      if (profile.referred_by_user_id === referrer.id) {
+        const alreadyUsedReferralDiscount = await hasUsedReferralBookingDiscount(
+          supabase,
+          profile.id,
+        );
+
+        return {
+          ok: !alreadyUsedReferralDiscount,
+          code: referrer.referral_code,
+          discountAmount: alreadyUsedReferralDiscount ? 0 : 5,
+          message: alreadyUsedReferralDiscount
+            ? "Referral already linked. The $5 discount was already used."
+            : "Referral already linked. $5 discount applied.",
+        };
+      }
+
       return { ok: false, message: "A referral is already linked to your account." };
     }
   }
@@ -266,8 +292,9 @@ export async function validateReferralCode(referralCode: string) {
   return {
     ok: true,
     code: referrer.referral_code,
+    discountAmount: 5,
     message:
-      "Referral code applied. You and your friend get $5 off after your first completed cut.",
+      "Referral code applied. You and your friend get $5 off this booking.",
   };
 }
 
@@ -734,14 +761,19 @@ export async function completeBooking(bookingId: string, formData: FormData) {
       total_free_haircuts_used: 0,
     } as Loyalty);
 
-  const { data: credit } = await supabase
-    .from("discount_credits")
-    .select("*")
-    .eq("user_id", booking.user_id)
-    .eq("status", "unused")
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle<DiscountCredit>();
+  const hasBookingReferralDiscount =
+    booking.discount_type === "referral" && Number(booking.discount_amount) > 0;
+
+  const { data: credit } = hasBookingReferralDiscount
+    ? { data: null }
+    : await supabase
+        .from("discount_credits")
+        .select("*")
+        .eq("user_id", booking.user_id)
+        .eq("status", "unused")
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle<DiscountCredit>();
 
   const summary = calculateCompletionSummary({
     booking,
@@ -749,7 +781,14 @@ export async function completeBooking(bookingId: string, formData: FormData) {
     referralCredit: credit,
     settings,
   });
-  const finalPrice = Number.isFinite(manualFinal) ? manualFinal : summary.finalCashDue;
+  const preservedReferralDiscount = hasBookingReferralDiscount && !summary.freeHaircutApplied;
+  const discountAmount = preservedReferralDiscount
+    ? Number(booking.discount_amount)
+    : summary.discountAmount;
+  const defaultFinalPrice = preservedReferralDiscount
+    ? Math.max(0, Number(booking.base_price) - discountAmount)
+    : summary.finalCashDue;
+  const finalPrice = Number.isFinite(manualFinal) ? manualFinal : defaultFinalPrice;
   const completedAt = new Date().toISOString();
 
   const { data: updatedBooking, error: updateError } = await supabase
@@ -759,10 +798,10 @@ export async function completeBooking(bookingId: string, formData: FormData) {
       final_price: finalPrice,
       discount_type: summary.freeHaircutApplied
         ? "free_haircut"
-        : summary.referralCreditApplied
+        : preservedReferralDiscount || summary.referralCreditApplied
           ? "referral"
           : "none",
-      discount_amount: summary.discountAmount,
+      discount_amount: discountAmount,
       completed_at: completedAt,
     })
     .eq("id", booking.id)
@@ -787,10 +826,10 @@ export async function completeBooking(bookingId: string, formData: FormData) {
     booking_id: booking.id,
     service_type: booking.service_type,
     base_price: booking.base_price,
-    discount_amount: summary.discountAmount,
+    discount_amount: discountAmount,
     final_price: finalPrice,
     was_free_haircut: summary.freeHaircutApplied,
-    used_referral_credit: summary.referralCreditApplied,
+    used_referral_credit: preservedReferralDiscount || summary.referralCreditApplied,
     completed_at: completedAt,
   });
 
@@ -854,12 +893,15 @@ async function rewardFirstCompletedReferral(userId: string, amount: number) {
   if (!supabase) {
     return;
   }
-  const { count } = await supabase
+  const { data: firstHistoryRows } = await supabase
     .from("haircut_history")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", userId);
+    .select("id, used_referral_credit")
+    .eq("user_id", userId)
+    .order("completed_at", { ascending: true })
+    .limit(2)
+    .returns<{ id: string; used_referral_credit: boolean }[]>();
 
-  if (count !== 1) {
+  if (firstHistoryRows?.length !== 1) {
     return;
   }
 
@@ -875,7 +917,7 @@ async function rewardFirstCompletedReferral(userId: string, amount: number) {
   }
 
   const createdAt = new Date().toISOString();
-  await supabase.from("discount_credits").insert([
+  const creditsToIssue = [
     {
       user_id: referral.referrer_user_id,
       type: "referral",
@@ -884,15 +926,23 @@ async function rewardFirstCompletedReferral(userId: string, amount: number) {
       source_referral_id: referral.id,
       created_at: createdAt,
     },
-    {
+  ];
+
+  if (!firstHistoryRows[0].used_referral_credit) {
+    creditsToIssue.push({
       user_id: referral.referred_user_id,
       type: "referral",
       amount,
       status: "unused",
       source_referral_id: referral.id,
       created_at: createdAt,
-    },
-  ]);
+    });
+  }
+
+  await supabase.from("discount_credits").upsert(creditsToIssue, {
+    onConflict: "source_referral_id,user_id",
+    ignoreDuplicates: true,
+  });
 
   await supabase.from("referrals").update({
     status: "rewarded",
@@ -929,6 +979,21 @@ async function getReferrerByCode(
   }
 
   return Array.isArray(data) ? data[0] ?? null : null;
+}
+
+async function hasUsedReferralBookingDiscount(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  userId: string,
+) {
+  const { count } = await supabase
+    .from("bookings")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("discount_type", "referral")
+    .gt("discount_amount", 0)
+    .in("status", ["pending", "confirmed", "completed"]);
+
+  return Boolean(count && count > 0);
 }
 
 async function linkReferralCodeForCurrentUser(code: string) {
