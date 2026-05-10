@@ -36,12 +36,12 @@ export default async function ProfilePage() {
   return (
     <>
       <SiteHeader profile={profile} />
-      <main className="mx-auto grid w-full max-w-6xl gap-5 px-4 py-8 lg:grid-cols-[0.8fr_1.2fr]">
+      <main className="mx-auto grid w-full max-w-6xl gap-5 px-4 pb-28 pt-8 lg:grid-cols-[0.8fr_1.2fr] lg:pb-12">
         <section className="space-y-5">
           <div>
             <ProfileEditForm profile={profile} />
             <LogoutButton
-              className="mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-full border border-line bg-background px-4 text-sm font-semibold text-muted sm:hidden"
+              className="mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-full border border-line bg-background px-4 text-sm font-bold text-muted sm:hidden"
               showIcon
             />
           </div>
@@ -50,21 +50,21 @@ export default async function ProfilePage() {
             required={settings.loyalty_required_haircuts}
           />
           <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-3xl bg-surface p-5 ring-1 ring-line">
+            <div className="rounded-3xl bg-surface p-5 luxury-glow">
               <Gift className="text-gold" />
               <p className="mt-3 text-sm text-muted">Free cuts available</p>
               <p className="text-3xl font-semibold">
                 {loyalty?.free_haircuts_available ?? 0}
               </p>
             </div>
-            <div className="rounded-3xl bg-surface p-5 ring-1 ring-line">
+            <div className="rounded-3xl bg-surface p-5 luxury-glow">
               <TicketPercent className="text-barber-blue-strong" />
               <p className="mt-3 text-sm text-muted">$5 credits</p>
               <p className="text-3xl font-semibold">{credits.length}</p>
             </div>
           </div>
-          <div className="rounded-3xl bg-foreground p-5 text-background">
-            <p className="text-sm text-background/70">Referral code</p>
+          <div className="rounded-3xl border border-gold/35 bg-gold/10 p-5">
+            <p className="text-sm text-muted">Referral code</p>
             <p className="mt-2 text-2xl font-semibold tracking-[0.18em]">
               {profile.referral_code}
             </p>
@@ -76,7 +76,7 @@ export default async function ProfilePage() {
             <h2 className="text-xl font-semibold">Upcoming bookings</h2>
             <Link
               href="/booking"
-              className="rounded-full bg-foreground px-4 py-2 text-sm font-semibold text-background"
+              className="gold-gradient rounded-full px-4 py-2 text-sm font-black"
             >
               Book
             </Link>
@@ -86,7 +86,7 @@ export default async function ProfilePage() {
               upcoming.map((booking) => (
                 <article
                   key={booking.id}
-                  className="rounded-3xl border border-line bg-surface p-5"
+                  className="rounded-3xl border border-line bg-surface p-5 luxury-glow"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
@@ -96,13 +96,13 @@ export default async function ProfilePage() {
                         {formatBookingTime(booking.date_time)}
                       </p>
                     </div>
-                    <span className="rounded-full bg-barber-blue px-3 py-1 text-xs font-semibold">
+                    <span className="rounded-full border border-gold/35 bg-gold/10 px-3 py-1 text-xs font-bold text-gold">
                       {booking.status}
                     </span>
                   </div>
                   {settings.allow_customer_cancellation ? (
                     <form action={cancelBooking.bind(null, booking.id)} className="mt-4">
-                      <button className="rounded-full border border-line px-4 py-2 text-sm font-semibold text-muted">
+                      <button className="rounded-full border border-danger/35 px-4 py-2 text-sm font-bold text-danger">
                         Cancel booking
                       </button>
                     </form>

@@ -1,61 +1,178 @@
+"use client";
+
 import Link from "next/link";
-import { CalendarDays, Menu, UserRound } from "lucide-react";
+import { useState } from "react";
+import { Bell, CalendarDays, Crown, Home, Menu, Scissors, Star, UserRound, X } from "lucide-react";
 import { LogoutButton } from "@/components/logout-button";
 import { BRAND_NAME } from "@/lib/config";
 import type { Profile } from "@/lib/types";
 
+const navItems = [
+  { href: "/", label: "Home", icon: Home },
+  { href: "/#services", label: "Services", icon: Scissors },
+  { href: "/#loyalty", label: "Loyalty", icon: Star },
+];
+
+const customerNavItems = [
+  { href: "/", label: "Home", icon: Home },
+  { href: "/booking", label: "Book", icon: CalendarDays },
+  { href: "/profile", label: "My Bookings", icon: CalendarDays },
+  { href: "/#loyalty", label: "Rewards", icon: Star },
+  { href: "/profile", label: "Profile", icon: UserRound },
+];
+
+const adminNavItems = [
+  { href: "/admin", label: "Admin Dashboard", icon: Crown },
+  { href: "/admin/bookings", label: "Bookings", icon: CalendarDays },
+  { href: "/admin/customers", label: "Customers", icon: UserRound },
+  { href: "/admin/stats", label: "Stats", icon: Star },
+];
+
 export function SiteHeader({ profile }: { profile?: Profile | null }) {
+  const [isOpen, setIsOpen] = useState(false);
   const isAdmin = profile?.role === "admin";
+  const isCustomer = profile?.role === "customer";
+  const desktopNavItems = isAdmin ? adminNavItems : isCustomer ? customerNavItems : navItems;
+  const mobileNavItems = isAdmin ? adminNavItems : isCustomer ? customerNavItems : navItems;
 
   return (
-    <header className="sticky top-0 z-30 border-b border-line bg-background/90 backdrop-blur">
-      <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4">
-        <button
-          type="button"
-          aria-label="Open menu"
-          className="grid size-10 place-items-center rounded-full border border-line bg-surface text-foreground"
-        >
-          <Menu size={20} />
-        </button>
-
-        <Link href="/" className="text-lg font-semibold tracking-[0.08em]">
-          {BRAND_NAME}
-        </Link>
-
-        <nav className="flex items-center gap-2">
-          {profile ? (
-            <LogoutButton className="hidden h-10 rounded-full border border-line bg-surface px-4 text-sm font-semibold text-muted transition hover:text-foreground sm:inline-flex sm:items-center" />
-          ) : null}
-          <Link
-            aria-label="Booking"
-            href="/booking"
-            className="hidden size-10 place-items-center rounded-full bg-foreground text-background sm:grid"
-          >
-            <CalendarDays size={18} />
-          </Link>
-          {isAdmin ? (
-            <Link className="text-sm font-medium" href="/admin">
-              Admin
+    <>
+      <header className="sticky top-0 z-40 border-b border-line bg-background/88 backdrop-blur-xl">
+        <div className="mx-auto flex h-20 w-full max-w-7xl items-center justify-between px-4">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              aria-label="Open menu"
+              onClick={() => setIsOpen(true)}
+              className="grid size-11 place-items-center rounded-full border border-line bg-surface text-foreground lg:hidden"
+            >
+              <Menu size={20} />
+            </button>
+            <Link href="/" className="flex items-center gap-3">
+              <span className="grid size-11 place-items-center rounded-2xl border border-gold/35 bg-gold/10 text-gold">
+                <Crown size={22} />
+              </span>
+              <span className="text-2xl font-black tracking-tight text-foreground">
+                {BRAND_NAME}
+              </span>
             </Link>
-          ) : null}
-          <Link
-            href={profile ? "/profile" : "/login"}
-            aria-label={profile ? "Open profile" : "Login"}
-            className="grid size-10 place-items-center overflow-hidden rounded-full bg-barber-blue text-foreground"
-          >
-            {profile?.avatar_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={profile.avatar_url}
-                alt=""
-                className="size-full object-cover"
-              />
-            ) : (
-              <UserRound size={18} />
-            )}
+          </div>
+
+          <nav className="hidden items-center gap-7 lg:flex">
+            {desktopNavItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="text-sm font-semibold text-muted transition hover:text-gold"
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+
+          <div className="flex items-center gap-2">
+            {profile ? (
+              <LogoutButton className="hidden h-11 rounded-full border border-line bg-surface px-4 text-sm font-bold text-muted transition hover:text-foreground lg:inline-flex lg:items-center" />
+            ) : null}
+            <Link
+              href="/booking"
+              className="gold-gradient hidden h-11 items-center rounded-full px-5 text-sm font-black shadow-[0_10px_35px_rgba(214,168,79,0.25)] sm:inline-flex"
+            >
+              Book Now
+            </Link>
+            <button
+              aria-label="Notifications"
+              className="hidden size-11 place-items-center rounded-full border border-line bg-surface text-muted sm:grid"
+            >
+              <Bell size={18} />
+            </button>
+            <Link
+              href={profile ? "/profile" : "/login"}
+              aria-label={profile ? "Open profile" : "Login"}
+              className="grid size-11 place-items-center overflow-hidden rounded-full border border-gold/30 bg-secondary-card text-gold"
+            >
+              {profile?.avatar_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={profile.avatar_url} alt="" className="size-full object-cover" />
+              ) : (
+                <UserRound size={19} />
+              )}
+            </Link>
+          </div>
+        </div>
+      </header>
+
+      <div
+        className={`fixed inset-0 z-50 bg-black/60 backdrop-blur-sm transition lg:hidden ${
+          isOpen ? "opacity-100" : "pointer-events-none opacity-0"
+        }`}
+        onClick={() => setIsOpen(false)}
+      />
+      <aside
+        className={`fixed left-0 top-0 z-50 h-full w-80 max-w-[85vw] border-r border-line bg-surface p-5 shadow-2xl transition-transform lg:hidden ${
+          isOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <div className="flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-3" onClick={() => setIsOpen(false)}>
+            <span className="grid size-10 place-items-center rounded-2xl border border-gold/35 bg-gold/10 text-gold">
+              <Crown size={20} />
+            </span>
+            <span className="text-xl font-black">{BRAND_NAME}</span>
           </Link>
+          <button
+            type="button"
+            aria-label="Close menu"
+            onClick={() => setIsOpen(false)}
+            className="grid size-10 place-items-center rounded-full border border-line text-muted"
+          >
+            <X size={18} />
+          </button>
+        </div>
+        <nav className="mt-8 grid gap-2">
+          {mobileNavItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-3 rounded-2xl border border-line bg-background px-4 py-3 text-sm font-bold text-foreground"
+              >
+                <Icon size={18} className="text-gold" />
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
-      </div>
-    </header>
+        <Link
+          href="/booking"
+          onClick={() => setIsOpen(false)}
+          className="gold-gradient mt-6 flex h-12 items-center justify-center rounded-full text-sm font-black"
+        >
+          Book Now
+        </Link>
+        {profile ? (
+          <LogoutButton className="mt-3 h-12 w-full rounded-full border border-line text-sm font-bold text-muted" />
+        ) : null}
+      </aside>
+
+      <nav className="fixed bottom-3 left-1/2 z-40 grid w-[calc(100%-1.5rem)] max-w-md -translate-x-1/2 grid-cols-4 rounded-[1.5rem] border border-line bg-surface/95 p-2 shadow-2xl backdrop-blur-xl lg:hidden">
+        {[
+          { href: "/", label: "Home", icon: Home },
+          { href: isAdmin ? "/admin/bookings" : "/booking", label: isAdmin ? "Bookings" : "Book", icon: CalendarDays },
+          { href: isAdmin ? "/admin/stats" : "/#loyalty", label: isAdmin ? "Stats" : "Rewards", icon: Star },
+          { href: profile ? "/profile" : "/login", label: "Profile", icon: UserRound },
+        ].map((item) => {
+          const Icon = item.icon;
+          return (
+            <Link key={item.href} href={item.href} className="grid place-items-center gap-1 rounded-2xl py-2 text-[11px] font-bold text-muted">
+              <Icon size={18} className="text-gold" />
+              {item.label}
+            </Link>
+          );
+        })}
+      </nav>
+    </>
   );
 }

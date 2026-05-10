@@ -1,6 +1,6 @@
 import type { AdminSettings, BusinessHours, ServiceType } from "@/lib/types";
 
-export const BRAND_NAME = "Mo Blendz";
+export const BRAND_NAME = "MoBlendz";
 
 export const defaultBusinessHours: BusinessHours = {
   monday: { enabled: true, start: "09:00", end: "18:00" },
