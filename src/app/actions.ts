@@ -9,11 +9,14 @@ import {
   combineDateAndTime,
   createReferralCode,
   getDefaultAvatarUrl,
-  isWithinBusinessHours,
   rangesOverlap,
 } from "@/lib/business-logic";
 import { getServiceDuration, getServicePrice } from "@/lib/config";
 import { getAdminSettings } from "@/lib/data";
+import {
+  getLocalDateBounds,
+  isWithinHardCodedAvailability,
+} from "@/lib/hard-coded-availability";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Booking, DiscountCredit, Loyalty, Profile } from "@/lib/types";
 
@@ -149,38 +152,21 @@ export async function createBooking(formData: FormData) {
   }
 
   const settings = await getAdminSettings();
-  const { getWeeklyAvailability } = await import("@/lib/data");
-  const weeklyAvailability = await getWeeklyAvailability();
   const startsAt = combineDateAndTime(parsed.data.date, parsed.data.time);
   const duration = getServiceDuration(parsed.data.serviceType, settings);
 
-  if (!isWithinBusinessHours(startsAt, duration, settings, weeklyAvailability)) {
+  if (!isWithinHardCodedAvailability(startsAt)) {
     return { ok: false, message: "That time is outside available business hours." };
   }
 
-  const rangeEnd = addMinutes(startsAt, duration).toISOString();
-  const [{ data: possibleConflicts }, { data: blockedTimes }] = await Promise.all([
-    supabase
-      .from("bookings")
-      .select("*")
-      .in("status", ["pending", "confirmed"])
-      .lt("date_time", rangeEnd)
-      .returns<Booking[]>(),
-    supabase
-      .from("blocked_times")
-      .select("date, start_time, end_time, all_day, starts_at, ends_at")
-      .or(
-        `and(date.eq.${parsed.data.date}),and(starts_at.lt.${rangeEnd},ends_at.gt.${startsAt.toISOString()})`,
-      )
-      .returns<{
-        date?: string;
-        start_time?: string | null;
-        end_time?: string | null;
-        all_day?: boolean;
-        starts_at?: string | null;
-        ends_at?: string | null;
-      }[]>(),
-  ]);
+  const { start: dayStart, end: dayEnd } = getLocalDateBounds(parsed.data.date);
+  const { data: possibleConflicts } = await supabase
+    .from("bookings")
+    .select("id,date_time,duration_minutes,status")
+    .in("status", ["pending", "confirmed"])
+    .gte("date_time", dayStart.toISOString())
+    .lt("date_time", dayEnd.toISOString())
+    .returns<Pick<Booking, "id" | "date_time" | "duration_minutes" | "status">[]>();
 
   const hasConflict = (possibleConflicts ?? []).some((booking) =>
     rangesOverlap(
@@ -191,25 +177,7 @@ export async function createBooking(formData: FormData) {
     ),
   );
 
-  const isBlocked = (blockedTimes ?? []).some((block) => {
-    if (block.starts_at && block.ends_at) {
-      return rangesOverlap(startsAt, duration, new Date(block.starts_at), (new Date(block.ends_at).getTime() - new Date(block.starts_at).getTime()) / 60000);
-    }
-
-    if (block.all_day) {
-      return true;
-    }
-
-    if (block.start_time && block.end_time) {
-      const blockStart = combineDateAndTime(parsed.data.date, block.start_time.slice(0, 5));
-      const blockEnd = combineDateAndTime(parsed.data.date, block.end_time.slice(0, 5));
-      return rangesOverlap(startsAt, duration, blockStart, (blockEnd.getTime() - blockStart.getTime()) / 60000);
-    }
-
-    return false;
-  });
-
-  if (hasConflict || isBlocked) {
+  if (hasConflict) {
     return { ok: false, message: "That time is unavailable. Pick another slot." };
   }
 

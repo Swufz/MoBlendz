@@ -2,25 +2,32 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { ArrowLeft, ArrowRight, Check, Scissors } from "lucide-react";
-import { createBooking, getBookingDayAvailability } from "@/app/actions";
-import {
-  formatBookingDate,
-  formatBookingTime,
-  getAvailableTimeSlots,
-} from "@/lib/business-logic";
+import { createBooking } from "@/app/actions";
+import { formatBookingDate, formatBookingTime } from "@/lib/business-logic";
 import {
   defaultAdminSettings,
   getServiceDuration,
   getServicePrice,
   serviceLabels,
 } from "@/lib/config";
+import {
+  addMinutesLocal,
+  getHardCodedSlotsForDate,
+  getLocalDateBounds,
+} from "@/lib/hard-coded-availability";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { AdminSettings, BookingStatus, ServiceType } from "@/lib/types";
-import type { BlockedTime, Booking, WeeklyAvailability } from "@/lib/types";
 
 const services: ServiceType[] = ["haircut", "haircut_beard"];
 const pendingBookingKey = "mo-blendz-pending-booking";
 const completedBookingKey = "mo-blendz-completed-booking";
+
+type ActiveBooking = {
+  id: string;
+  date_time: string;
+  duration_minutes: number;
+  status: Extract<BookingStatus, "pending" | "confirmed">;
+};
 
 type PendingBooking = {
   serviceType: ServiceType;
@@ -55,12 +62,10 @@ export function BookingWizard({
   settings = defaultAdminSettings,
   shouldResume = false,
   initialIsLoggedIn = false,
-  weeklyAvailability,
 }: {
   settings?: AdminSettings;
   shouldResume?: boolean;
   initialIsLoggedIn?: boolean;
-  weeklyAvailability?: WeeklyAvailability[];
 }) {
   const [step, setStep] = useState(0);
   const [serviceType, setServiceType] = useState<ServiceType>("haircut");
@@ -73,8 +78,7 @@ export function BookingWizard({
   const [completedBooking, setCompletedBooking] = useState<CompletedBooking | null>(null);
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [isLoadingAvailability, setIsLoadingAvailability] = useState(false);
-  const [blockedTimes, setBlockedTimes] = useState<BlockedTime[]>([]);
-  const [activeBookings, setActiveBookings] = useState<Booking[]>([]);
+  const [activeBookings, setActiveBookings] = useState<ActiveBooking[]>([]);
   const [isPending, startTransition] = useTransition();
   const isCreatingRef = useRef(false);
   const didResumeRef = useRef(false);
@@ -86,22 +90,19 @@ export function BookingWizard({
   const slots = useMemo(
     () => {
       console.time("generate slots");
-      const generatedSlots = getAvailableTimeSlots(selectedDate, serviceType, settings, weeklyAvailability)
+      const generatedSlots = getHardCodedSlotsForDate(date)
         .filter((slot) =>
           isSlotVisible({
             slot,
             serviceType,
             settings,
-            blockedTimes,
             activeBookings,
-            date,
           }),
-        )
-        .slice(0, 18);
+        );
       console.timeEnd("generate slots");
       return generatedSlots;
     },
-    [activeBookings, blockedTimes, date, selectedDate, serviceType, settings, weeklyAvailability],
+    [activeBookings, date, serviceType, settings],
   );
   const price = getServicePrice(serviceType, settings);
   const duration = getServiceDuration(serviceType, settings);
@@ -136,32 +137,46 @@ export function BookingWizard({
 
   useEffect(() => {
     let isCurrent = true;
-    // Sync selected-day availability with the server action.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsLoadingAvailability(true);
     setTime("");
 
-    getBookingDayAvailability(date)
-      .then((result) => {
-        if (!isCurrent) {
-          return;
-        }
+    async function loadActiveBookings() {
+      console.time("fetch bookings");
+      const { start, end } = getLocalDateBounds(date);
+      const supabase = createSupabaseBrowserClient();
+      const { data, error } = await supabase
+        .from("bookings")
+        .select("id,date_time,duration_minutes,status")
+        .in("status", ["pending", "confirmed"])
+        .gte("date_time", start.toISOString())
+        .lt("date_time", end.toISOString())
+        .returns<ActiveBooking[]>();
+      console.timeEnd("fetch bookings");
 
-        if (!result.ok) {
-          setMessage(result.message);
-        }
+      if (!isCurrent) {
+        return;
+      }
 
-        setBlockedTimes(result.blockedTimes);
-        setActiveBookings(result.activeBookings);
-      })
+      if (error) {
+        console.warn("Could not load booking conflicts.", error.message);
+        setActiveBookings([]);
+        return;
+      }
+
+      setActiveBookings(data ?? []);
+    }
+
+    loadActiveBookings()
       .catch((error) => {
         if (!isCurrent) {
           return;
         }
 
-        setMessage(
-          error instanceof Error ? error.message : "Could not load availability.",
+        console.warn(
+          error instanceof Error ? error.message : "Could not load booking conflicts.",
         );
+        setActiveBookings([]);
       })
       .finally(() => {
         if (isCurrent) {
@@ -656,15 +671,11 @@ function readCompletedBooking() {
 
 function isSlotVisible({
   activeBookings,
-  blockedTimes,
-  date,
   serviceType,
   settings,
   slot,
 }: {
-  activeBookings: Booking[];
-  blockedTimes: BlockedTime[];
-  date: string;
+  activeBookings: ActiveBooking[];
   serviceType: ServiceType;
   settings: AdminSettings;
   slot: Date;
@@ -679,39 +690,5 @@ function isSlotVisible({
   if (overlapsBooking) {
     return false;
   }
-
-  return !blockedTimes.some((block) => {
-    if (block.starts_at && block.ends_at) {
-      return (
-        slot < new Date(block.ends_at) &&
-        addMinutesLocal(slot, duration) > new Date(block.starts_at)
-      );
-    }
-
-    if (block.date !== date) {
-      return false;
-    }
-
-    if (block.all_day) {
-      return true;
-    }
-
-    if (!block.start_time || !block.end_time) {
-      return false;
-    }
-
-    const blockStart = buildDateTime(date, block.start_time);
-    const blockEnd = buildDateTime(date, block.end_time);
-    return slot < blockEnd && addMinutesLocal(slot, duration) > blockStart;
-  });
-}
-
-function buildDateTime(date: string, time: string) {
-  const [year, month, day] = date.split("-").map(Number);
-  const [hours, minutes] = time.slice(0, 5).split(":").map(Number);
-  return new Date(year, month - 1, day, hours, minutes, 0, 0);
-}
-
-function addMinutesLocal(date: Date, minutes: number) {
-  return new Date(date.getTime() + minutes * 60_000);
+  return true;
 }
