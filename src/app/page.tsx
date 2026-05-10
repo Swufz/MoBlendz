@@ -203,11 +203,11 @@ function CustomerHome({
             </h1>
             <p className="mt-3 text-lg text-muted">Ready for your next cut?</p>
             <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-              <Link href="/booking">
+              <Link href="/book">
                 <GoldButton className="w-full sm:w-auto">Book Appointment</GoldButton>
               </Link>
               <Link
-                href="/profile"
+                href="/bookings"
                 className="inline-flex h-12 items-center justify-center rounded-full border border-line px-5 text-sm font-bold text-foreground"
               >
                 My Bookings
@@ -242,7 +242,7 @@ function CustomerHome({
               </div>
               {upcoming ? <StatusBadge status={upcoming.status} /> : null}
             </div>
-            <Link href={upcoming ? "/profile" : "/booking"} className="mt-5 inline-flex">
+            <Link href={upcoming ? "/bookings" : "/book"} className="mt-5 inline-flex">
               <GoldButton>{upcoming ? "View Booking" : "Book Appointment"}</GoldButton>
             </Link>
           </DarkCard>
@@ -281,9 +281,9 @@ function CustomerHome({
           <ReferralCard activeCredits={activeCredits} referralCode={profile.referral_code} />
 
           <div className="grid gap-3 sm:grid-cols-2">
-            <QuickAction href="/booking" label="Book Appointment" icon={<CalendarCheck />} />
+            <QuickAction href="/book" label="Book Appointment" icon={<CalendarCheck />} />
             <QuickAction href="/profile" label="Edit Profile" icon={<UserRound />} />
-            <QuickAction href="/profile" label="My Bookings" icon={<Scissors />} />
+            <QuickAction href="/bookings" label="My Bookings" icon={<Scissors />} />
             <QuickAction href="/profile#referral" label="Refer a Friend" icon={<BadgeDollarSign />} />
           </div>
         </section>

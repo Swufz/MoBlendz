@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { Bell, CalendarDays, Crown, Home, Menu, Scissors, Star, UserRound, X } from "lucide-react";
+import { CalendarDays, Crown, Home, Menu, Scissors, Star, UserRound, X } from "lucide-react";
 import { LogoutButton } from "@/components/logout-button";
 import { BRAND_NAME } from "@/lib/config";
 import type { Profile } from "@/lib/types";
@@ -15,19 +15,18 @@ const navItems = [
 
 const customerNavItems = [
   { href: "/", label: "Home", icon: Home },
-  { href: "/booking", label: "Book", icon: CalendarDays },
-  { href: "/profile", label: "My Bookings", icon: CalendarDays },
-  { href: "/#loyalty", label: "Rewards", icon: Star },
+  { href: "/book", label: "Book", icon: CalendarDays },
+  { href: "/bookings", label: "My Bookings", icon: CalendarDays },
   { href: "/profile", label: "Profile", icon: UserRound },
 ];
 
 const adminNavItems = [
-  { href: "/admin", label: "Admin Dashboard", icon: Crown },
+  { href: "/admin", label: "Dashboard", icon: Crown },
   { href: "/admin/bookings", label: "Bookings", icon: CalendarDays },
   { href: "/admin/customers", label: "Customers", icon: UserRound },
   { href: "/admin/stats", label: "Stats", icon: Star },
-  { href: "/admin/settings", label: "Settings", icon: Scissors },
   { href: "/admin/availability", label: "Availability", icon: CalendarDays },
+  { href: "/admin/settings", label: "Settings", icon: Scissors },
 ];
 
 export function SiteHeader({ profile }: { profile?: Profile | null }) {
@@ -41,6 +40,31 @@ export function SiteHeader({ profile }: { profile?: Profile | null }) {
   const bookingHref = referralCode
     ? `/booking?ref=${encodeURIComponent(referralCode)}`
     : "/booking";
+  const navBookingHref = referralCode
+    ? `/book?ref=${encodeURIComponent(referralCode)}`
+    : "/book";
+  const profileHref = isAdmin ? "/admin" : profile ? "/profile" : "/login";
+  const ctaHref = isCustomer ? navBookingHref : bookingHref;
+  const bottomNavItems = isAdmin
+    ? [
+        { href: "/admin", label: "Dashboard", icon: Crown },
+        { href: "/admin/bookings", label: "Bookings", icon: CalendarDays },
+        { href: "/admin/stats", label: "Stats", icon: Star },
+        { href: "/admin/customers", label: "Customers", icon: UserRound },
+      ]
+    : isCustomer
+      ? [
+          { href: "/", label: "Home", icon: Home },
+          { href: navBookingHref, label: "Book", icon: CalendarDays },
+          { href: "/bookings", label: "Bookings", icon: Star },
+          { href: "/profile", label: "Profile", icon: UserRound },
+        ]
+      : [
+          { href: "/", label: "Home", icon: Home },
+          { href: bookingHref, label: "Book", icon: CalendarDays },
+          { href: "/#services", label: "Services", icon: Scissors },
+          { href: "/login", label: "Sign In", icon: UserRound },
+        ];
 
   return (
     <>
@@ -81,21 +105,17 @@ export function SiteHeader({ profile }: { profile?: Profile | null }) {
             {profile ? (
               <LogoutButton className="hidden h-11 rounded-full border border-line bg-surface px-4 text-sm font-bold text-muted transition hover:text-foreground lg:inline-flex lg:items-center" />
             ) : null}
+            {!isAdmin ? (
+              <Link
+                href={ctaHref}
+                className="gold-gradient hidden h-11 items-center rounded-full px-5 text-sm font-black shadow-[0_10px_35px_rgba(214,168,79,0.25)] sm:inline-flex"
+              >
+                {isCustomer ? "Book" : "Book Now"}
+              </Link>
+            ) : null}
             <Link
-              href={bookingHref}
-              className="gold-gradient hidden h-11 items-center rounded-full px-5 text-sm font-black shadow-[0_10px_35px_rgba(214,168,79,0.25)] sm:inline-flex"
-            >
-              Book Appointment
-            </Link>
-            <button
-              aria-label="Notifications"
-              className="hidden size-11 place-items-center rounded-full border border-line bg-surface text-muted sm:grid"
-            >
-              <Bell size={18} />
-            </button>
-            <Link
-              href={profile ? "/profile" : "/login"}
-              aria-label={profile ? "Open profile" : "Login"}
+              href={profileHref}
+              aria-label={profile ? (isAdmin ? "Open admin dashboard" : "Open profile") : "Login"}
               className="grid size-11 place-items-center overflow-hidden rounded-full border border-gold/30 bg-secondary-card text-gold"
             >
               {profile?.avatar_url ? (
@@ -152,25 +172,22 @@ export function SiteHeader({ profile }: { profile?: Profile | null }) {
             );
           })}
         </nav>
-        <Link
-          href={bookingHref}
-          onClick={() => setIsOpen(false)}
-          className="gold-gradient mt-6 flex h-12 items-center justify-center rounded-full text-sm font-black"
-        >
-          Book Appointment
-        </Link>
+        {!isAdmin ? (
+          <Link
+            href={ctaHref}
+            onClick={() => setIsOpen(false)}
+            className="gold-gradient mt-6 flex h-12 items-center justify-center rounded-full text-sm font-black"
+          >
+            {isCustomer ? "Book" : "Book Now"}
+          </Link>
+        ) : null}
         {profile ? (
           <LogoutButton className="mt-3 h-12 w-full rounded-full border border-line text-sm font-bold text-muted" />
         ) : null}
       </aside>
 
       <nav className="fixed bottom-3 left-1/2 z-40 grid w-[calc(100%-1.5rem)] max-w-md -translate-x-1/2 grid-cols-4 rounded-[1.5rem] border border-line bg-surface/95 p-2 shadow-2xl backdrop-blur-xl lg:hidden">
-        {[
-          { href: "/", label: "Home", icon: Home },
-          { href: isAdmin ? "/admin/bookings" : bookingHref, label: isAdmin ? "Bookings" : "Book", icon: CalendarDays },
-          { href: isAdmin ? "/admin/stats" : profile ? "/#loyalty" : "/#services", label: isAdmin ? "Stats" : profile ? "Rewards" : "Services", icon: Star },
-          { href: profile ? "/profile" : "/login", label: "Profile", icon: UserRound },
-        ].map((item) => {
+        {bottomNavItems.map((item) => {
           const Icon = item.icon;
           return (
             <Link key={item.href} href={item.href} className="grid place-items-center gap-1 rounded-2xl py-2 text-[11px] font-bold text-muted">
