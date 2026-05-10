@@ -15,7 +15,7 @@ export function LoyaltyTracker({
       <p className="text-sm font-black uppercase tracking-[0.18em] text-gold">
         Loyalty Rewards
       </p>
-      <h2 className="mt-2 text-2xl font-black">Track to free haircut</h2>
+      <h2 className="mt-2 text-2xl font-black">Track to FREE haircut</h2>
       <div className="mt-4 flex items-center gap-3">
         {Array.from({ length: paidNeeded }).map((_, index) => {
           const filled = index < clamped;

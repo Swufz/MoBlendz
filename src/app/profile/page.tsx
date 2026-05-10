@@ -5,6 +5,7 @@ import { cancelBooking } from "@/app/actions";
 import { LoyaltyTracker } from "@/components/loyalty-tracker";
 import { LogoutButton } from "@/components/logout-button";
 import { ProfileEditForm } from "@/components/profile-edit-form";
+import { ReferralCard } from "@/components/referral-card";
 import { SiteHeader } from "@/components/site-header";
 import { formatBookingDate, formatBookingTime } from "@/lib/business-logic";
 import {
@@ -63,12 +64,7 @@ export default async function ProfilePage() {
               <p className="text-3xl font-semibold">{credits.length}</p>
             </div>
           </div>
-          <div className="rounded-3xl border border-gold/35 bg-gold/10 p-5">
-            <p className="text-sm text-muted">Referral code</p>
-            <p className="mt-2 text-2xl font-semibold tracking-[0.18em]">
-              {profile.referral_code}
-            </p>
-          </div>
+          <ReferralCard activeCredits={credits.length} referralCode={profile.referral_code} />
         </section>
 
         <section className="space-y-5">

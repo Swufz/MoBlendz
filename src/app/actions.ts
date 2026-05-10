@@ -17,6 +17,7 @@ import {
   getLocalDateBounds,
   isWithinHardCodedAvailability,
 } from "@/lib/hard-coded-availability";
+import { baseReferralCodeFromName, normalizeReferralCode } from "@/lib/referrals";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Booking, DiscountCredit, Loyalty, Profile } from "@/lib/types";
 
@@ -26,6 +27,7 @@ const bookingSchema = z.object({
   time: z.string().min(1),
   notes: z.string().max(500).optional(),
   phone: z.string().max(30).optional(),
+  referralCode: z.string().max(40).optional(),
 });
 
 const profileSchema = z.object({
@@ -71,6 +73,7 @@ export async function createBooking(formData: FormData) {
     time: formData.get("time"),
     notes: formData.get("notes")?.toString() ?? "",
     phone: formData.get("phone")?.toString() ?? "",
+    referralCode: formData.get("referralCode")?.toString() ?? "",
   });
 
   if (!parsed.success) {
@@ -118,7 +121,7 @@ export async function createBooking(formData: FormData) {
         phone: parsed.data.phone || null,
         avatar_url: avatarUrl,
         role: "customer",
-        referral_code: createReferralCode(`${fullName}${user.id}`),
+        referral_code: await getUniqueReferralCode(supabase, fullName),
       })
       .select("*")
       .single<Profile>();
@@ -141,6 +144,14 @@ export async function createBooking(formData: FormData) {
     }
 
     profile = updatedProfile;
+  }
+
+  const referralCode = normalizeReferralCode(parsed.data.referralCode ?? "");
+  if (referralCode) {
+    const referralResult = await linkReferralCodeForCurrentUser(referralCode);
+    if (!referralResult.ok) {
+      return { ok: false, message: referralResult.message };
+    }
   }
 
   if (!profile.phone) {
@@ -213,6 +224,50 @@ export async function createBooking(formData: FormData) {
       status: booking.status,
       durationMinutes: booking.duration_minutes,
     },
+  };
+}
+
+export async function validateReferralCode(referralCode: string) {
+  const code = normalizeReferralCode(referralCode);
+  if (!code) {
+    return { ok: false, message: "" };
+  }
+
+  const supabase = await getConfiguredSupabaseClient();
+  if (!supabase) {
+    return { ok: false, message: "Supabase is not configured." };
+  }
+
+  const referrer = await getReferrerByCode(supabase, code);
+  if (!referrer) {
+    return { ok: false, message: "Referral code not found." };
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("id, referred_by_user_id")
+      .eq("auth_user_id", user.id)
+      .maybeSingle<Pick<Profile, "id" | "referred_by_user_id">>();
+
+    if (profile?.id === referrer.id) {
+      return { ok: false, message: "You can't use your own referral code." };
+    }
+
+    if (profile?.referred_by_user_id) {
+      return { ok: false, message: "A referral is already linked to your account." };
+    }
+  }
+
+  return {
+    ok: true,
+    code: referrer.referral_code,
+    message:
+      "Referral code applied. You and your friend get $5 off after your first completed cut.",
   };
 }
 
@@ -843,6 +898,74 @@ async function rewardFirstCompletedReferral(userId: string, amount: number) {
     status: "rewarded",
     completed_at: createdAt,
   }).eq("id", referral.id);
+}
+
+async function getUniqueReferralCode(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  fullName: string,
+) {
+  const baseCode = baseReferralCodeFromName(fullName);
+  const { data, error } = await supabase.rpc("generate_referral_code", {
+    base_code: baseCode,
+  });
+
+  if (!error && typeof data === "string" && data) {
+    return data;
+  }
+
+  return createReferralCode(`${baseCode}${crypto.randomUUID()}`);
+}
+
+async function getReferrerByCode(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  code: string,
+) {
+  const { data, error } = await supabase
+    .rpc("get_referrer_by_code", { input_code: code })
+    .returns<Pick<Profile, "id" | "referral_code">[]>();
+
+  if (error) {
+    return null;
+  }
+
+  return Array.isArray(data) ? data[0] ?? null : null;
+}
+
+async function linkReferralCodeForCurrentUser(code: string) {
+  const supabase = await getConfiguredSupabaseClient();
+  if (!supabase) {
+    return { ok: false, message: "Supabase is not configured." };
+  }
+
+  const { data, error } = await supabase.rpc("link_referral_code", {
+    input_code: code,
+  });
+
+  if (error) {
+    return { ok: false, message: error.message };
+  }
+
+  if (data === "linked" || data === "already_linked_same_referrer") {
+    return {
+      ok: true,
+      message:
+        "Referral code applied. You and your friend get $5 off after your first completed cut.",
+    };
+  }
+
+  if (data === "not_found") {
+    return { ok: false, message: "Referral code not found." };
+  }
+
+  if (data === "self_referral") {
+    return { ok: false, message: "You can't use your own referral code." };
+  }
+
+  if (data === "already_referred") {
+    return { ok: false, message: "A referral is already linked to your account." };
+  }
+
+  return { ok: false, message: "Referral code could not be applied." };
 }
 
 async function getConfiguredSupabaseClient() {

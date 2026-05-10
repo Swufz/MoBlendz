@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createReferralCode, getDefaultAvatarUrl } from "@/lib/business-logic";
+import { baseReferralCodeFromName } from "@/lib/referrals";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function GET(request: Request) {
@@ -28,6 +29,7 @@ export async function GET(request: Request) {
         .maybeSingle();
 
       if (!existing) {
+        const referralCode = await getUniqueReferralCode(supabase, fullName);
         await supabase.from("profiles").insert({
           auth_user_id: user.id,
           full_name: fullName,
@@ -35,11 +37,27 @@ export async function GET(request: Request) {
           phone: null,
           avatar_url: avatarUrl,
           role: "customer",
-          referral_code: createReferralCode(`${fullName}${user.id}`),
+          referral_code: referralCode,
         });
       }
     }
   }
 
   return NextResponse.redirect(new URL(next, requestUrl.origin));
+}
+
+async function getUniqueReferralCode(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  fullName: string,
+) {
+  const baseCode = baseReferralCodeFromName(fullName);
+  const { data, error } = await supabase.rpc("generate_referral_code", {
+    base_code: baseCode,
+  });
+
+  if (!error && typeof data === "string" && data) {
+    return data;
+  }
+
+  return createReferralCode(`${baseCode}${crypto.randomUUID()}`);
 }

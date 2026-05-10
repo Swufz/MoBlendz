@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Bell, CalendarDays, Crown, Home, Menu, Scissors, Star, UserRound, X } from "lucide-react";
 import { LogoutButton } from "@/components/logout-button";
@@ -31,10 +32,15 @@ const adminNavItems = [
 
 export function SiteHeader({ profile }: { profile?: Profile | null }) {
   const [isOpen, setIsOpen] = useState(false);
+  const searchParams = useSearchParams();
   const isAdmin = profile?.role === "admin";
   const isCustomer = profile?.role === "customer";
   const desktopNavItems = isAdmin ? adminNavItems : isCustomer ? customerNavItems : navItems;
   const mobileNavItems = isAdmin ? adminNavItems : isCustomer ? customerNavItems : navItems;
+  const referralCode = searchParams.get("ref");
+  const bookingHref = referralCode
+    ? `/booking?ref=${encodeURIComponent(referralCode)}`
+    : "/booking";
 
   return (
     <>
@@ -76,7 +82,7 @@ export function SiteHeader({ profile }: { profile?: Profile | null }) {
               <LogoutButton className="hidden h-11 rounded-full border border-line bg-surface px-4 text-sm font-bold text-muted transition hover:text-foreground lg:inline-flex lg:items-center" />
             ) : null}
             <Link
-              href="/booking"
+              href={bookingHref}
               className="gold-gradient hidden h-11 items-center rounded-full px-5 text-sm font-black shadow-[0_10px_35px_rgba(214,168,79,0.25)] sm:inline-flex"
             >
               Book Appointment
@@ -147,7 +153,7 @@ export function SiteHeader({ profile }: { profile?: Profile | null }) {
           })}
         </nav>
         <Link
-          href="/booking"
+          href={bookingHref}
           onClick={() => setIsOpen(false)}
           className="gold-gradient mt-6 flex h-12 items-center justify-center rounded-full text-sm font-black"
         >
@@ -161,7 +167,7 @@ export function SiteHeader({ profile }: { profile?: Profile | null }) {
       <nav className="fixed bottom-3 left-1/2 z-40 grid w-[calc(100%-1.5rem)] max-w-md -translate-x-1/2 grid-cols-4 rounded-[1.5rem] border border-line bg-surface/95 p-2 shadow-2xl backdrop-blur-xl lg:hidden">
         {[
           { href: "/", label: "Home", icon: Home },
-          { href: isAdmin ? "/admin/bookings" : "/booking", label: isAdmin ? "Bookings" : "Book", icon: CalendarDays },
+          { href: isAdmin ? "/admin/bookings" : bookingHref, label: isAdmin ? "Bookings" : "Book", icon: CalendarDays },
           { href: isAdmin ? "/admin/stats" : profile ? "/#loyalty" : "/#services", label: isAdmin ? "Stats" : profile ? "Rewards" : "Services", icon: Star },
           { href: profile ? "/profile" : "/login", label: "Profile", icon: UserRound },
         ].map((item) => {

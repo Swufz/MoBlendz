@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { ArrowLeft, ArrowRight, Check, Scissors } from "lucide-react";
-import { createBooking } from "@/app/actions";
+import { createBooking, validateReferralCode } from "@/app/actions";
 import { formatBookingDate, formatBookingTime } from "@/lib/business-logic";
 import {
   defaultAdminSettings,
@@ -15,6 +15,7 @@ import {
   getHardCodedSlotsForDate,
   getLocalDateBounds,
 } from "@/lib/hard-coded-availability";
+import { normalizeReferralCode } from "@/lib/referrals";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { AdminSettings, BookingStatus, ServiceType } from "@/lib/types";
 
@@ -34,6 +35,7 @@ type PendingBooking = {
   date: string;
   time: string;
   notes: string;
+  referralCode: string;
 };
 
 type CompletedBooking = {
@@ -62,16 +64,24 @@ export function BookingWizard({
   settings = defaultAdminSettings,
   shouldResume = false,
   initialIsLoggedIn = false,
+  initialReferralCode = "",
 }: {
   settings?: AdminSettings;
   shouldResume?: boolean;
   initialIsLoggedIn?: boolean;
+  initialReferralCode?: string;
 }) {
   const [step, setStep] = useState(0);
   const [serviceType, setServiceType] = useState<ServiceType>("haircut");
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [time, setTime] = useState("");
   const [notes, setNotes] = useState("");
+  const [referralCode, setReferralCode] = useState(() =>
+    normalizeReferralCode(initialReferralCode),
+  );
+  const [referralMessage, setReferralMessage] = useState("");
+  const [isReferralValid, setIsReferralValid] = useState(false);
+  const [isCheckingReferral, setIsCheckingReferral] = useState(false);
   const [phone, setPhone] = useState("");
   const [message, setMessage] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(initialIsLoggedIn);
@@ -136,6 +146,50 @@ export function BookingWizard({
   }, [shouldResume]);
 
   useEffect(() => {
+    const code = normalizeReferralCode(referralCode);
+    if (!code) {
+      setReferralMessage("");
+      setIsReferralValid(false);
+      return;
+    }
+
+    let isCurrent = true;
+    setIsCheckingReferral(true);
+    const timeoutId = window.setTimeout(() => {
+      validateReferralCode(code)
+        .then((result) => {
+          if (!isCurrent) {
+            return;
+          }
+
+          setIsReferralValid(result.ok);
+          setReferralMessage(result.message);
+          if (result.ok && "code" in result && result.code) {
+            setReferralCode(result.code);
+          }
+        })
+        .catch(() => {
+          if (!isCurrent) {
+            return;
+          }
+
+          setIsReferralValid(false);
+          setReferralMessage("Referral code could not be checked.");
+        })
+        .finally(() => {
+          if (isCurrent) {
+            setIsCheckingReferral(false);
+          }
+        });
+    }, 350);
+
+    return () => {
+      isCurrent = false;
+      window.clearTimeout(timeoutId);
+    };
+  }, [referralCode]);
+
+  useEffect(() => {
     let isCurrent = true;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsLoadingAvailability(true);
@@ -194,10 +248,11 @@ export function BookingWizard({
     setDate(draft.date);
     setTime(draft.time);
     setNotes(draft.notes);
+    setReferralCode(normalizeReferralCode(draft.referralCode ?? ""));
   }
 
   function currentDraft(): PendingBooking {
-    return { serviceType, date, time, notes };
+    return { serviceType, date, time, notes, referralCode };
   }
 
   function savePendingBooking(draft: PendingBooking) {
@@ -245,6 +300,7 @@ export function BookingWizard({
     formData.set("date", draft.date);
     formData.set("time", draft.time);
     formData.set("notes", draft.notes);
+    formData.set("referralCode", normalizeReferralCode(draft.referralCode));
     formData.set("phone", phoneNumber);
 
     startTransition(async () => {
@@ -437,9 +493,14 @@ export function BookingWizard({
             duration={duration}
             notes={notes}
             price={price}
+            referralCode={referralCode}
+            referralMessage={referralMessage}
             serviceType={serviceType}
+            setReferralCode={setReferralCode}
             setNotes={setNotes}
             time={time}
+            isCheckingReferral={isCheckingReferral}
+            isReferralValid={isReferralValid}
           />
         ) : null}
 
@@ -530,17 +591,27 @@ function BookingReview({
   duration,
   notes,
   price,
+  referralCode,
+  referralMessage,
   serviceType,
+  setReferralCode,
   setNotes,
   time,
+  isCheckingReferral,
+  isReferralValid,
 }: {
   date: Date;
   duration: number;
   notes: string;
   price: number;
+  referralCode: string;
+  referralMessage: string;
   serviceType: ServiceType;
+  setReferralCode: (referralCode: string) => void;
   setNotes: (notes: string) => void;
   time: string;
+  isCheckingReferral: boolean;
+  isReferralValid: boolean;
 }) {
   return (
     <div className="space-y-4">
@@ -568,6 +639,36 @@ function BookingReview({
           placeholder="Optional"
         />
       </label>
+      <div className="rounded-3xl border border-line bg-background p-4">
+        <label className="block">
+          <span className="text-sm font-semibold text-foreground">
+            Have a referral code?
+          </span>
+          <input
+            value={referralCode}
+            onChange={(event) =>
+              setReferralCode(normalizeReferralCode(event.target.value))
+            }
+            placeholder="Enter referral code"
+            className="mt-3 h-12 w-full rounded-2xl border border-line bg-surface px-4 text-foreground placeholder:text-muted"
+          />
+        </label>
+        <p className="mt-2 text-sm leading-6 text-muted">
+          Use a friend&apos;s code. After your first completed cut, you both get
+          $5 off your next cut.
+        </p>
+        {isCheckingReferral ? (
+          <p className="mt-2 text-sm font-bold text-muted">Checking code...</p>
+        ) : referralMessage ? (
+          <p
+            className={`mt-2 text-sm font-bold ${
+              isReferralValid ? "text-success" : "text-danger"
+            }`}
+          >
+            {isReferralValid ? `Referral code applied: ${referralCode}` : referralMessage}
+          </p>
+        ) : null}
+      </div>
       <div className="rounded-3xl border border-gold/40 bg-gold/10 p-5">
         <p className="text-sm text-muted">Cash due</p>
         <p className="text-3xl font-black text-gold">${price}</p>

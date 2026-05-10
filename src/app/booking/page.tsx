@@ -5,9 +5,9 @@ import { getAdminSettings, getSessionProfile } from "@/lib/data";
 export default async function BookingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ resume?: string }>;
+  searchParams: Promise<{ resume?: string; ref?: string }>;
 }) {
-  const { resume } = await searchParams;
+  const { resume, ref } = await searchParams;
   const [{ profile }, settings] = await Promise.all([
     getSessionProfile(),
     getAdminSettings(),
@@ -28,6 +28,7 @@ export default async function BookingPage({
         </div>
         <BookingWizard
           initialIsLoggedIn={Boolean(profile)}
+          initialReferralCode={ref ?? ""}
           settings={settings}
           shouldResume={resume === "1"}
         />

@@ -10,6 +10,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { DarkCard, GoldButton, SectionHeader, StatusBadge } from "@/components/luxury-ui";
+import { ReferralCard } from "@/components/referral-card";
 import { SiteHeader } from "@/components/site-header";
 import { formatBookingDate, formatBookingTime } from "@/lib/business-logic";
 import { serviceLabels } from "@/lib/config";
@@ -28,7 +29,12 @@ const recentCuts = [
   { title: "Low taper fade", image: "/images/haircut 3.jpg" },
 ];
 
-export default async function Home() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ ref?: string }>;
+}) {
+  const { ref } = await searchParams;
   const { profile } = await getSessionProfile();
   const settings = await getAdminSettings();
 
@@ -54,10 +60,25 @@ export default async function Home() {
     );
   }
 
-  return <LoggedOutHome paidNeeded={settings.loyalty_required_haircuts - 1} />;
+  return (
+    <LoggedOutHome
+      paidNeeded={settings.loyalty_required_haircuts - 1}
+      referralCode={ref ?? ""}
+    />
+  );
 }
 
-function LoggedOutHome({ paidNeeded }: { paidNeeded: number }) {
+function LoggedOutHome({
+  paidNeeded,
+  referralCode,
+}: {
+  paidNeeded: number;
+  referralCode: string;
+}) {
+  const bookingHref = referralCode
+    ? `/booking?ref=${encodeURIComponent(referralCode)}`
+    : "/booking";
+
   return (
     <>
       <SiteHeader />
@@ -65,17 +86,14 @@ function LoggedOutHome({ paidNeeded }: { paidNeeded: number }) {
         <section className="relative overflow-hidden rounded-[2rem] border border-line bg-[radial-gradient(circle_at_70%_20%,rgba(214,168,79,0.18),transparent_24rem),linear-gradient(135deg,#121514,#080a09_62%,#171a18)] p-5 luxury-glow sm:p-7 lg:p-8">
           <div className="grid gap-7 lg:grid-cols-[0.86fr_1.14fr] lg:items-center">
             <div className="relative z-10">
-              <span className="inline-flex rounded-full border border-gold/35 bg-gold/10 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-gold">
-                Private barber appointments
-              </span>
-              <h1 className="mt-5 text-3xl font-black tracking-tight text-foreground sm:text-5xl">
+              <h1 className="text-3xl font-black tracking-tight text-foreground sm:text-5xl">
                 Private cuts by appointment.
               </h1>
               <p className="mt-5 max-w-lg text-base leading-7 text-muted">
                 Choose your service, pick a time, and pay cash when you arrive.
               </p>
               <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-                <Link href="/booking">
+                <Link href={bookingHref}>
                   <GoldButton className="w-full sm:w-auto">
                     Book Appointment <ArrowRight size={17} className="ml-2" />
                   </GoldButton>
@@ -129,7 +147,7 @@ function LoggedOutHome({ paidNeeded }: { paidNeeded: number }) {
                   ))}
                 </div>
                 <p className="mt-4 text-sm text-muted">
-                  Your 5th cut is free after 4 paid visits.
+                  Your 5th cut is FREE after 4 paid visits.
                 </p>
               </DarkCard>
             </div>
@@ -141,12 +159,12 @@ function LoggedOutHome({ paidNeeded }: { paidNeeded: number }) {
             title="Services"
           />
           <div className="grid gap-4 md:grid-cols-2">
-            <ServiceCard title="Haircut" price="$30" copy="Clean cut, fade, and lineup." icon={<Scissors />} />
-            <ServiceCard title="Haircut + Beard" price="$35" copy="Cut, beard trim, shaping, and lineup." icon={<Sparkles />} />
+            <ServiceCard title="Haircut" price="$30" copy="Clean cut, fade, and lineup." icon={<Scissors />} href={bookingHref} />
+            <ServiceCard title="Haircut + Beard" price="$35" copy="Cut, beard trim, shaping, and lineup." icon={<Sparkles />} href={bookingHref} />
           </div>
         </section>
 
-        <RecentCutsSection />
+        <RecentCutsSection bookingHref={bookingHref} />
       </main>
     </>
   );
@@ -260,23 +278,13 @@ function CustomerHome({
             </DarkCard>
           </div>
 
-          <DarkCard className="p-5">
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-gold">
-              Referral
-            </p>
-            <p className="mt-3 text-3xl font-black tracking-[0.18em]">
-              {profile.referral_code}
-            </p>
-            <p className="mt-2 text-sm text-muted">
-              Active $5 credits: <span className="font-black text-gold">{activeCredits}</span>
-            </p>
-          </DarkCard>
+          <ReferralCard activeCredits={activeCredits} referralCode={profile.referral_code} />
 
           <div className="grid gap-3 sm:grid-cols-2">
             <QuickAction href="/booking" label="Book Appointment" icon={<CalendarCheck />} />
             <QuickAction href="/profile" label="Edit Profile" icon={<UserRound />} />
             <QuickAction href="/profile" label="My Bookings" icon={<Scissors />} />
-            <QuickAction href="/profile" label="Refer a Friend" icon={<BadgeDollarSign />} />
+            <QuickAction href="/profile#referral" label="Refer a Friend" icon={<BadgeDollarSign />} />
           </div>
         </section>
       </main>
@@ -312,7 +320,7 @@ function AdminHome({ profile }: { profile: Profile }) {
   );
 }
 
-function RecentCutsSection() {
+function RecentCutsSection({ bookingHref = "/booking" }: { bookingHref?: string }) {
   return (
     <section id="recent-cuts" className="grid gap-6">
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
@@ -320,7 +328,7 @@ function RecentCutsSection() {
           title="Recent Cuts"
           copy="Clean blends, tapers, and sharp finishes."
         />
-        <Link href="/booking" className="inline-flex">
+        <Link href={bookingHref} className="inline-flex">
           <GoldButton>Like this style? Book your cut.</GoldButton>
         </Link>
       </div>
@@ -338,11 +346,13 @@ function ServiceCard({
   price,
   copy,
   icon,
+  href = "/booking",
 }: {
   title: string;
   price: string;
   copy: string;
   icon: React.ReactNode;
+  href?: string;
 }) {
   return (
     <DarkCard className="group p-6 transition hover:-translate-y-1 hover:border-gold/60 hover:shadow-[0_20px_70px_rgba(214,168,79,0.12)]">
@@ -354,7 +364,7 @@ function ServiceCard({
       </div>
       <h3 className="mt-6 text-2xl font-black">{title}</h3>
       <p className="mt-2 text-sm leading-6 text-muted">{copy}</p>
-      <Link href="/booking" className="mt-6 inline-flex rounded-full border border-line px-4 py-2 text-sm font-bold text-gold transition group-hover:border-gold/70">
+      <Link href={href} className="mt-6 inline-flex rounded-full border border-line px-4 py-2 text-sm font-bold text-gold transition group-hover:border-gold/70">
         Book service
       </Link>
     </DarkCard>
