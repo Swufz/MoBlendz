@@ -26,8 +26,11 @@
   --color-secondary-card: var(--secondary-card);
   --color-danger: var(--danger);
   --color-success: var(--success);
-  --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
-    "Segoe UI", sans-serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-heading: var(--font-outfit), var(--font-inter), ui-sans-serif, system-ui,
+    sans-serif;
+  --font-brand: var(--font-allura), cursive;
   --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
 }
 
@@ -37,8 +40,23 @@ body {
     radial-gradient(circle at top right, rgba(240, 201, 120, 0.08), transparent 28rem),
     var(--background);
   color: var(--foreground);
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
-    "Segoe UI", sans-serif;
+  font-family: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-outfit), var(--font-inter), ui-sans-serif, system-ui,
+    sans-serif;
+}
+
+.font-brand {
+  font-family: var(--font-allura), cursive;
+  letter-spacing: 0;
 }
 
 body::before {

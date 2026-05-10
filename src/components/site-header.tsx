@@ -10,7 +10,6 @@ import type { Profile } from "@/lib/types";
 const navItems = [
   { href: "/", label: "Home", icon: Home },
   { href: "/#services", label: "Services", icon: Scissors },
-  { href: "/#loyalty", label: "Loyalty", icon: Star },
 ];
 
 const customerNavItems = [
@@ -54,7 +53,7 @@ export function SiteHeader({ profile }: { profile?: Profile | null }) {
               <span className="grid size-11 place-items-center rounded-2xl border border-gold/35 bg-gold/10 text-gold">
                 <Crown size={22} />
               </span>
-              <span className="text-2xl font-black tracking-tight text-foreground">
+              <span className="font-brand text-4xl text-foreground">
                 {BRAND_NAME}
               </span>
             </Link>
@@ -80,7 +79,7 @@ export function SiteHeader({ profile }: { profile?: Profile | null }) {
               href="/booking"
               className="gold-gradient hidden h-11 items-center rounded-full px-5 text-sm font-black shadow-[0_10px_35px_rgba(214,168,79,0.25)] sm:inline-flex"
             >
-              Book Now
+              Book Appointment
             </Link>
             <button
               aria-label="Notifications"
@@ -120,7 +119,7 @@ export function SiteHeader({ profile }: { profile?: Profile | null }) {
             <span className="grid size-10 place-items-center rounded-2xl border border-gold/35 bg-gold/10 text-gold">
               <Crown size={20} />
             </span>
-            <span className="text-xl font-black">{BRAND_NAME}</span>
+            <span className="font-brand text-3xl">{BRAND_NAME}</span>
           </Link>
           <button
             type="button"
@@ -152,7 +151,7 @@ export function SiteHeader({ profile }: { profile?: Profile | null }) {
           onClick={() => setIsOpen(false)}
           className="gold-gradient mt-6 flex h-12 items-center justify-center rounded-full text-sm font-black"
         >
-          Book Now
+          Book Appointment
         </Link>
         {profile ? (
           <LogoutButton className="mt-3 h-12 w-full rounded-full border border-line text-sm font-bold text-muted" />
@@ -163,7 +162,7 @@ export function SiteHeader({ profile }: { profile?: Profile | null }) {
         {[
           { href: "/", label: "Home", icon: Home },
           { href: isAdmin ? "/admin/bookings" : "/booking", label: isAdmin ? "Bookings" : "Book", icon: CalendarDays },
-          { href: isAdmin ? "/admin/stats" : "/#loyalty", label: isAdmin ? "Stats" : "Rewards", icon: Star },
+          { href: isAdmin ? "/admin/stats" : profile ? "/#loyalty" : "/#services", label: isAdmin ? "Stats" : profile ? "Rewards" : "Services", icon: Star },
           { href: profile ? "/profile" : "/login", label: "Profile", icon: UserRound },
         ].map((item) => {
           const Icon = item.icon;
