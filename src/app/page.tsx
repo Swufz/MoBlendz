@@ -25,9 +25,9 @@ import {
 import type { Booking, Loyalty, Profile } from "@/lib/types";
 
 const recentCuts = [
-  { title: "Low taper fade", image: "/images/haircut 1.jpg" },
-  { title: "Mid taper textured top", image: "/images/haircut 2.jpg" },
-  { title: "Burst fade", image: "/images/haircut 3.jpg" },
+  { title: "Scissor Work", image: "/images/haircut 1.jpg" },
+  { title: "Low Taper Mullet", image: "/images/haircut 2.jpg" },
+  { title: "Low taper fade", image: "/images/haircut 3.jpg" },
   { title: "Haircut + beard", image: "/images/beard cut.jpg" },
   { title: "Clean lineup", image: null },
   { title: "Textured top", image: null },
@@ -111,7 +111,7 @@ function LoggedOutHome({ paidNeeded }: { paidNeeded: number }) {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-background via-background/15 to-transparent" />
                 <div className="absolute left-5 top-5 rounded-full border border-gold/30 bg-background/75 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-gold backdrop-blur">
-                  Clean fades by appointment
+                  Your Next Cut Starts Here
                 </div>
               </div>
 
