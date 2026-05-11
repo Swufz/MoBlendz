@@ -17,12 +17,12 @@ export function RecentCutsSlideshow({ cuts }: { cuts: Cut[] }) {
       return;
     }
 
-    const intervalId = window.setInterval(() => {
+    const timeoutId = window.setTimeout(() => {
       setActiveIndex((index) => (index + 1) % cuts.length);
     }, 3500);
 
-    return () => window.clearInterval(intervalId);
-  }, [cuts.length]);
+    return () => window.clearTimeout(timeoutId);
+  }, [activeIndex, cuts.length]);
 
   const activeCut = cuts[activeIndex];
   const previousSlide = () =>
