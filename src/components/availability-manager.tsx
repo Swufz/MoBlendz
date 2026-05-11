@@ -60,7 +60,7 @@ export function AvailabilityManager({
   return (
     <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
       <DarkCard className="p-5">
-        <h2 className="text-2xl font-black">Weekly availability</h2>
+        <h2 className="text-2xl font-semibold">Weekly availability</h2>
         <p className="mt-2 text-sm text-muted">
           These hours control what customers see on the booking page.
         </p>
@@ -69,9 +69,9 @@ export function AvailabilityManager({
           {weeklyAvailability.map((day) => (
             <div
               key={day.day_of_week}
-              className="grid gap-3 rounded-3xl border border-line bg-background p-4 md:grid-cols-[1fr_1fr_1fr_1fr] md:items-end"
+              className="grid gap-3 rounded-lg border border-line bg-background p-4 md:grid-cols-[1fr_1fr_1fr_1fr] md:items-end"
             >
-              <label className="flex items-center gap-3 font-black">
+              <label className="flex items-center gap-3 font-semibold">
                 <input
                   name={`day-${day.day_of_week}-available`}
                   type="checkbox"
@@ -90,7 +90,7 @@ export function AvailabilityManager({
           ))}
           <button
             disabled={isPending}
-            className="gold-gradient h-12 rounded-full px-5 text-sm font-black disabled:opacity-60"
+            className="bg-gold text-background h-12 rounded-md px-5 text-sm font-semibold disabled:opacity-60"
           >
             {isPending ? "Saving..." : "Save Weekly Hours"}
           </button>
@@ -99,16 +99,16 @@ export function AvailabilityManager({
 
       <div className="space-y-6">
         <DarkCard className="p-5">
-          <h2 className="text-2xl font-black">Block time</h2>
+          <h2 className="text-2xl font-semibold">Block time</h2>
           <p className="mt-2 text-sm text-muted">
             Hide vacation days, personal appointments, or unavailable time ranges.
           </p>
           <form action={handleBlockedAdd} className="mt-5 grid gap-3">
             <label className="block">
               <span className="text-sm font-bold text-muted">Date</span>
-              <input name="date" type="date" required className="mt-2 h-11 w-full rounded-2xl border border-line bg-background px-4 text-foreground" />
+              <input name="date" type="date" required className="mt-2 h-11 w-full rounded-md border border-line bg-background px-4 text-foreground" />
             </label>
-            <label className="flex items-center gap-3 text-sm font-black">
+            <label className="flex items-center gap-3 text-sm font-semibold">
               <input name="all_day" type="checkbox" className="size-5 accent-[#d6a84f]" />
               Block all day
             </label>
@@ -118,11 +118,11 @@ export function AvailabilityManager({
             </div>
             <label className="block">
               <span className="text-sm font-bold text-muted">Reason</span>
-              <input name="reason" placeholder="Vacation, personal appointment..." className="mt-2 h-11 w-full rounded-2xl border border-line bg-background px-4 text-foreground" />
+              <input name="reason" placeholder="Vacation, personal appointment..." className="mt-2 h-11 w-full rounded-md border border-line bg-background px-4 text-foreground" />
             </label>
             <button
               disabled={isPending}
-              className="gold-gradient h-12 rounded-full px-5 text-sm font-black disabled:opacity-60"
+              className="bg-gold text-background h-12 rounded-md px-5 text-sm font-semibold disabled:opacity-60"
             >
               {isPending ? "Saving..." : "Add Blocked Time"}
             </button>
@@ -130,14 +130,14 @@ export function AvailabilityManager({
         </DarkCard>
 
         <DarkCard className="p-5">
-          <h2 className="text-2xl font-black">Blocked dates</h2>
+          <h2 className="text-2xl font-semibold">Blocked dates</h2>
           <div className="mt-4 grid gap-3">
             {blockedTimes.length ? (
               blockedTimes.map((block) => (
-                <div key={block.id} className="rounded-2xl border border-line bg-background p-4">
+                <div key={block.id} className="rounded-md border border-line bg-background p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="font-black">
+                      <p className="font-semibold">
                         {block.date ?? formatLegacyBlockedDate(block.starts_at)}
                       </p>
                       <p className="mt-1 text-sm text-muted">
@@ -151,7 +151,7 @@ export function AvailabilityManager({
                       type="button"
                       onClick={() => handleDelete(block.id)}
                       disabled={isPending}
-                      className="rounded-full border border-danger/40 px-3 py-1 text-xs font-black text-danger disabled:opacity-50"
+                      className="rounded-md border border-danger/40 px-3 py-1 text-xs font-semibold text-danger disabled:opacity-50"
                     >
                       Remove
                     </button>
@@ -159,7 +159,7 @@ export function AvailabilityManager({
                 </div>
               ))
             ) : (
-              <p className="rounded-2xl border border-line bg-background p-4 text-sm text-muted">
+              <p className="rounded-md border border-line bg-background p-4 text-sm text-muted">
                 No blocked times yet.
               </p>
             )}
@@ -169,7 +169,7 @@ export function AvailabilityManager({
 
       {message ? (
         <p
-          className={`lg:col-span-2 rounded-2xl p-4 text-sm font-black ${
+          className={`lg:col-span-2 rounded-md p-4 text-sm font-semibold ${
             isError ? "bg-danger/10 text-danger" : "bg-success/10 text-success"
           }`}
         >
@@ -196,7 +196,7 @@ function TimeField({
         name={name}
         type="time"
         defaultValue={defaultValue.slice(0, 5)}
-        className="mt-2 h-11 w-full rounded-2xl border border-line bg-background px-3 text-foreground"
+        className="mt-2 h-11 w-full rounded-md border border-line bg-background px-3 text-foreground"
       />
     </label>
   );

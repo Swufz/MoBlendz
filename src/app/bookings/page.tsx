@@ -37,24 +37,24 @@ export default async function MyBookingsPage() {
       <main className="mx-auto w-full max-w-5xl px-4 pb-28 pt-8 lg:pb-12">
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.22em] text-gold">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gold">
               My Bookings
             </p>
-            <h1 className="mt-2 text-4xl font-black">Your appointments.</h1>
+            <h1 className="mt-2 text-4xl font-semibold">Your appointments.</h1>
             <p className="mt-2 text-sm text-muted">
               View upcoming cuts, past visits, status, and expected cash due.
             </p>
           </div>
           <Link
             href="/book"
-            className="gold-gradient inline-flex h-12 items-center justify-center rounded-full px-5 text-sm font-black"
+            className="bg-gold text-background inline-flex h-12 items-center justify-center rounded-md px-5 text-sm font-semibold"
           >
             Book
           </Link>
         </div>
 
         <section className="mt-8 space-y-4">
-          <h2 className="text-2xl font-black">Upcoming</h2>
+          <h2 className="text-2xl font-semibold">Upcoming</h2>
           {upcoming.length ? (
             <div className="grid gap-3">
               {upcoming.map((booking) => (
@@ -71,7 +71,7 @@ export default async function MyBookingsPage() {
         </section>
 
         <section className="mt-10 space-y-4">
-          <h2 className="text-2xl font-black">Past</h2>
+          <h2 className="text-2xl font-semibold">Past</h2>
           {past.length ? (
             <div className="grid gap-3">
               {past.map((booking) => (
@@ -98,10 +98,10 @@ function BookingCard({
   const canCancel = allowCancel && ["pending", "confirmed"].includes(booking.status);
 
   return (
-    <article className="rounded-3xl border border-line bg-surface p-5 luxury-glow">
+    <article className="rounded-lg border border-line bg-surface p-5 ">
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
         <div>
-          <p className="text-lg font-black">{serviceLabels[booking.service_type]}</p>
+          <p className="text-lg font-semibold">{serviceLabels[booking.service_type]}</p>
           <p className="mt-1 text-sm text-muted">
             {formatBookingDate(booking.date_time)} at {formatBookingTime(booking.date_time)}
           </p>
@@ -111,7 +111,7 @@ function BookingCard({
         </div>
         <div className="flex items-center gap-2 sm:flex-col sm:items-end">
           <StatusBadge status={booking.status} />
-          <p className="text-lg font-black text-gold">${cashDue}</p>
+          <p className="text-lg font-semibold text-gold">${cashDue}</p>
         </div>
       </div>
 
@@ -124,7 +124,7 @@ function BookingCard({
 
       {canCancel ? (
         <form action={cancelBooking.bind(null, booking.id)} className="mt-4">
-          <button className="rounded-full border border-danger/35 px-4 py-2 text-sm font-bold text-danger transition hover:bg-danger/10">
+          <button className="rounded-md border border-danger/35 px-4 py-2 text-sm font-bold text-danger transition hover:bg-danger/10">
             Cancel booking
           </button>
         </form>
@@ -135,7 +135,7 @@ function BookingCard({
 
 function EmptyState({ label }: { label: string }) {
   return (
-    <div className="rounded-3xl border border-line bg-surface p-8 text-center text-muted luxury-glow">
+    <div className="rounded-lg border border-line bg-surface p-8 text-center text-muted ">
       <CalendarDays className="mx-auto mb-3 text-gold" />
       {label}
     </div>

@@ -8,7 +8,7 @@ export function DarkCard({
   className?: string;
 }) {
   return (
-    <div className={`luxury-glow rounded-[2rem] border border-line bg-surface ${className}`}>
+    <div className={`rounded-lg border border-line bg-surface ${className}`}>
       {children}
     </div>
   );
@@ -22,7 +22,7 @@ export function GoldButton({
   className?: string;
 }) {
   return (
-    <span className={`gold-gradient inline-flex h-12 items-center justify-center rounded-full px-5 text-sm font-bold shadow-[0_10px_35px_rgba(214,168,79,0.25)] ${className}`}>
+    <span className={`inline-flex h-10 items-center justify-center rounded-md bg-gold px-4 text-sm font-semibold text-background ${className}`}>
       {children}
     </span>
   );
@@ -40,11 +40,11 @@ export function SectionHeader({
   return (
     <div>
       {eyebrow ? (
-        <p className="text-xs font-bold uppercase tracking-[0.22em] text-gold">
+        <p className="text-sm font-semibold text-muted">
           {eyebrow}
         </p>
       ) : null}
-      <h2 className="mt-2 text-3xl font-black tracking-tight text-foreground sm:text-4xl">
+      <h2 className="mt-1 text-2xl font-semibold text-foreground sm:text-3xl">
         {title}
       </h2>
       {copy ? <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">{copy}</p> : null}
@@ -61,7 +61,7 @@ export function StatusBadge({ status }: { status: string }) {
         : "border-gold/40 bg-gold/10 text-gold";
 
   return (
-    <span className={`w-fit rounded-full border px-3 py-1 text-xs font-bold capitalize ${tone}`}>
+    <span className={`w-fit rounded-md border px-2 py-1 text-xs font-semibold capitalize ${tone}`}>
       {status.replace("_", " ")}
     </span>
   );

@@ -116,13 +116,13 @@ export function ProfileEditForm({ profile }: { profile: Profile }) {
   }
 
   return (
-    <div className="rounded-[2rem] border border-line bg-surface p-5 luxury-glow">
+    <div className="rounded-lg border border-line bg-surface p-5">
       <div className="flex items-center gap-4">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={avatarUrl}
           alt=""
-          className="size-16 rounded-full object-cover"
+          className="size-16 rounded-md object-cover"
         />
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-2xl font-semibold">{profile.full_name}</h1>
@@ -135,19 +135,19 @@ export function ProfileEditForm({ profile }: { profile: Profile }) {
         <button
           type="button"
           onClick={() => setIsEditing(true)}
-          className="gold-gradient mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-full px-4 text-sm font-black"
+          className="mt-5 inline-flex h-10 w-full items-center justify-center gap-2 rounded-md bg-gold px-4 text-sm font-semibold text-background"
         >
           <Pencil size={16} />
           Edit Profile
         </button>
       ) : (
-        <div className="mt-5 space-y-4 rounded-3xl border border-line bg-background p-4">
+        <div className="mt-5 space-y-4 rounded-lg border border-line bg-background p-4">
           <label className="block">
             <span className="text-sm font-medium text-muted">Full name</span>
             <input
               value={fullName}
               onChange={(event) => setFullName(event.target.value)}
-              className="mt-2 h-11 w-full rounded-2xl border border-line bg-surface px-4 text-foreground"
+              className="mt-2 h-10 w-full rounded-md border border-line bg-surface px-3 text-foreground"
             />
           </label>
 
@@ -159,13 +159,13 @@ export function ProfileEditForm({ profile }: { profile: Profile }) {
               type="tel"
               inputMode="tel"
               placeholder="(949) 555-1234"
-              className="mt-2 h-11 w-full rounded-2xl border border-line bg-surface px-4 text-foreground"
+              className="mt-2 h-10 w-full rounded-md border border-line bg-surface px-3 text-foreground"
             />
           </label>
 
           <label className="block">
             <span className="text-sm font-medium text-muted">Profile picture</span>
-            <span className="mt-2 flex h-11 cursor-pointer items-center justify-center gap-2 rounded-2xl border border-line bg-surface px-4 text-sm font-bold text-gold">
+            <span className="mt-2 flex h-10 cursor-pointer items-center justify-center gap-2 rounded-md border border-line bg-surface px-3 text-sm font-semibold text-gold">
               <Camera size={16} />
               {isUploading ? "Uploading..." : "Upload image"}
             </span>
@@ -180,7 +180,7 @@ export function ProfileEditForm({ profile }: { profile: Profile }) {
 
           {message ? (
             <p
-              className={`rounded-2xl p-3 text-sm font-medium ${
+              className={`rounded-md p-3 text-sm font-medium ${
                 isError ? "bg-danger/10 text-danger" : "bg-success/10 text-success"
               }`}
             >
@@ -193,7 +193,7 @@ export function ProfileEditForm({ profile }: { profile: Profile }) {
               type="button"
               onClick={handleSave}
               disabled={isUploading || isPending}
-              className="gold-gradient h-11 rounded-full px-4 text-sm font-black disabled:opacity-60"
+              className="h-10 rounded-md bg-gold px-4 text-sm font-semibold text-background disabled:opacity-60"
             >
               {isPending ? "Saving..." : "Save"}
             </button>
@@ -201,7 +201,7 @@ export function ProfileEditForm({ profile }: { profile: Profile }) {
               type="button"
               onClick={handleCancel}
               disabled={isUploading || isPending}
-              className="h-11 rounded-full border border-line px-4 text-sm font-semibold text-muted disabled:opacity-60"
+              className="h-10 rounded-md border border-line px-4 text-sm font-semibold text-muted disabled:opacity-60"
             >
               Cancel
             </button>

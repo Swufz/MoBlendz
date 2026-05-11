@@ -46,7 +46,7 @@ export default async function ProfilePage() {
           <div>
             <ProfileEditForm profile={profile} />
             <LogoutButton
-              className="mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-full border border-line bg-background px-4 text-sm font-bold text-muted sm:hidden"
+              className="mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-md border border-line bg-background px-4 text-sm font-bold text-muted sm:hidden"
               showIcon
             />
           </div>
@@ -59,14 +59,14 @@ export default async function ProfilePage() {
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-3xl bg-surface p-5 luxury-glow">
+            <div className="rounded-lg bg-surface p-5 ">
               <Gift className="text-gold" />
               <p className="mt-3 text-sm text-muted">Free cuts available</p>
               <p className="text-3xl font-semibold">
                 {loyalty?.free_haircuts_available ?? 0}
               </p>
             </div>
-            <div className="rounded-3xl bg-surface p-5 luxury-glow">
+            <div className="rounded-lg bg-surface p-5 ">
               <TicketPercent className="text-barber-blue-strong" />
               <p className="mt-3 text-sm text-muted">$5 credits</p>
               <p className="text-3xl font-semibold">{credits.length}</p>
@@ -77,24 +77,24 @@ export default async function ProfilePage() {
         </section>
 
         <section className="space-y-5">
-          <div className="rounded-[2rem] border border-line bg-surface p-5 luxury-glow">
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-gold">
+          <div className="rounded-lg border border-line bg-surface p-5 ">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gold">
               Account
             </p>
-            <h1 className="mt-2 text-3xl font-black">Profile details</h1>
+            <h1 className="mt-2 text-3xl font-semibold">Profile details</h1>
             <p className="mt-2 text-sm leading-6 text-muted">
               Manage your contact info, rewards, referral code, and active credits here.
             </p>
             <div className="mt-5 flex flex-col gap-3 sm:flex-row">
               <Link
                 href="/book"
-                className="gold-gradient inline-flex h-11 items-center justify-center rounded-full px-4 text-sm font-black"
+                className="bg-gold text-background inline-flex h-11 items-center justify-center rounded-md px-4 text-sm font-semibold"
               >
                 Book
               </Link>
               <Link
                 href="/bookings"
-                className="inline-flex h-11 items-center justify-center rounded-full border border-line px-4 text-sm font-black text-foreground"
+                className="inline-flex h-11 items-center justify-center rounded-md border border-line px-4 text-sm font-semibold text-foreground"
               >
                 My Bookings
               </Link>
@@ -105,7 +105,7 @@ export default async function ProfilePage() {
           <div className="grid gap-3">
             {recentBookings.length ? (
               recentBookings.map((booking) => (
-                <article key={booking.id} className="rounded-3xl bg-surface p-5 ring-1 ring-line">
+                <article key={booking.id} className="rounded-lg bg-surface p-5 ring-1 ring-line">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="font-semibold">{serviceLabels[booking.service_type]}</p>
@@ -113,14 +113,14 @@ export default async function ProfilePage() {
                         {formatBookingDate(booking.date_time)} at {formatBookingTime(booking.date_time)}
                       </p>
                     </div>
-                    <span className="rounded-full border border-gold/35 bg-gold/10 px-3 py-1 text-xs font-bold text-gold">
+                    <span className="rounded-md border border-gold/35 bg-gold/10 px-3 py-1 text-xs font-bold text-gold">
                       {booking.status}
                     </span>
                   </div>
                 </article>
               ))
             ) : (
-              <div className="rounded-3xl bg-surface p-8 text-center text-muted ring-1 ring-line">
+              <div className="rounded-lg bg-surface p-8 text-center text-muted ring-1 ring-line">
                 <CalendarDays className="mx-auto mb-3" />
                 No bookings yet.
               </div>

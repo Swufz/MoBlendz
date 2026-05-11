@@ -61,12 +61,12 @@ export function CompleteBookingForm({
           step="0.01"
           min="0"
           placeholder={`${defaultFinalPrice}`}
-          className="mt-2 h-12 w-full rounded-2xl border border-line bg-background px-4"
+          className="mt-2 h-12 w-full rounded-md border border-line bg-background px-4"
         />
       </label>
       {message ? (
         <p
-          className={`rounded-2xl p-3 text-sm font-medium ${
+          className={`rounded-md p-3 text-sm font-medium ${
             isError ? "bg-red-50 text-red-700" : "bg-green-50 text-green-700"
           }`}
         >
@@ -75,7 +75,7 @@ export function CompleteBookingForm({
       ) : null}
       <button
         disabled={isPending}
-        className="h-12 w-full rounded-full bg-foreground px-5 font-semibold text-background disabled:opacity-60"
+        className="h-12 w-full rounded-md bg-foreground px-5 font-semibold text-background disabled:opacity-60"
       >
         {isPending ? "Completing..." : "Save completed booking"}
       </button>

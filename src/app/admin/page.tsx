@@ -71,23 +71,23 @@ export default async function AdminPage() {
             <h1 className="text-3xl font-semibold">Today at a glance</h1>
           </div>
           <div className="flex gap-2">
-            <Link className="rounded-full bg-foreground px-4 py-2 text-sm font-semibold text-background" href="/admin/bookings">
+            <Link className="rounded-md bg-foreground px-4 py-2 text-sm font-semibold text-background" href="/admin/bookings">
               Bookings
             </Link>
-            <Link className="rounded-full bg-barber-blue px-4 py-2 text-sm font-semibold" href="/admin/customers">
+            <Link className="rounded-md bg-barber-blue px-4 py-2 text-sm font-semibold" href="/admin/customers">
               Customers
             </Link>
-            <Link className="rounded-full bg-surface px-4 py-2 text-sm font-semibold ring-1 ring-line" href="/admin/stats">
+            <Link className="rounded-md bg-surface px-4 py-2 text-sm font-semibold ring-1 ring-line" href="/admin/stats">
               Stats
             </Link>
-            <Link className="rounded-full bg-surface px-4 py-2 text-sm font-semibold ring-1 ring-line" href="/admin/availability">
+            <Link className="rounded-md bg-surface px-4 py-2 text-sm font-semibold ring-1 ring-line" href="/admin/availability">
               Availability
             </Link>
           </div>
         </div>
 
         {statsResult.error ? (
-          <p className="mt-4 rounded-2xl bg-red-50 p-4 text-sm font-medium text-red-700">
+          <p className="mt-4 rounded-md bg-red-50 p-4 text-sm font-medium text-red-700">
             Stats could not load: {statsResult.error.message}
           </p>
         ) : null}
@@ -99,7 +99,7 @@ export default async function AdminPage() {
           <StatCard icon={<UsersRound />} label="Customers" value={stats.active_customers ?? 0} />
         </section>
 
-        <section className="mt-6 rounded-[2rem] border border-line bg-surface p-5 shadow-sm">
+        <section className="mt-6 rounded-lg border border-line bg-surface p-5 shadow-sm">
           <div className="flex items-center justify-between gap-3">
             <div>
               <h2 className="text-xl font-semibold">Today&apos;s bookings</h2>
@@ -123,7 +123,7 @@ export default async function AdminPage() {
                   </div>
                   <Link
                     href={`/admin/bookings/${booking.id}/complete`}
-                    className="w-fit rounded-full bg-foreground px-4 py-2 text-sm font-semibold text-background"
+                    className="w-fit rounded-md bg-foreground px-4 py-2 text-sm font-semibold text-background"
                   >
                     Open
                   </Link>
@@ -193,7 +193,7 @@ function StatCard({
   value: string | number;
 }) {
   return (
-    <div className="rounded-3xl bg-surface p-5 ring-1 ring-line">
+    <div className="rounded-lg bg-surface p-5 ring-1 ring-line">
       <div className="text-barber-blue-strong">{icon}</div>
       <p className="mt-4 text-sm text-muted">{label}</p>
       <p className="text-3xl font-semibold">{value}</p>

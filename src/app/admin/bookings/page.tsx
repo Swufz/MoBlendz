@@ -91,26 +91,26 @@ export default async function AdminBookingsPage({
             <h1 className="text-3xl font-semibold">Bookings</h1>
           </div>
           <div className="flex gap-2">
-            <Link href="/admin" className="rounded-full bg-barber-blue px-4 py-2 text-sm font-semibold">
+            <Link href="/admin" className="rounded-md bg-barber-blue px-4 py-2 text-sm font-semibold">
               Dashboard
             </Link>
-            <Link href="/admin/customers" className="rounded-full bg-surface px-4 py-2 text-sm font-semibold ring-1 ring-line">
+            <Link href="/admin/customers" className="rounded-md bg-surface px-4 py-2 text-sm font-semibold ring-1 ring-line">
               Customers
             </Link>
           </div>
         </div>
 
-        <form className="mt-6 grid gap-3 rounded-[2rem] border border-line bg-surface p-4 sm:grid-cols-[1fr_auto_auto]">
+        <form className="mt-6 grid gap-3 rounded-lg border border-line bg-surface p-4 sm:grid-cols-[1fr_auto_auto]">
           <input
             name="q"
             defaultValue={q}
             placeholder="Search name, phone, or email"
-            className="h-11 rounded-full border border-line bg-background px-4"
+            className="h-11 rounded-md border border-line bg-background px-4"
           />
           <select
             name="status"
             defaultValue={status}
-            className="h-11 rounded-full border border-line bg-background px-4"
+            className="h-11 rounded-md border border-line bg-background px-4"
           >
             <option value="all">All latest</option>
             <option value="upcoming">Upcoming</option>
@@ -120,18 +120,18 @@ export default async function AdminBookingsPage({
               </option>
             ))}
           </select>
-          <button className="h-11 rounded-full bg-foreground px-5 font-semibold text-background">
+          <button className="h-11 rounded-md bg-foreground px-5 font-semibold text-background">
             Filter
           </button>
         </form>
 
         {error ? (
-          <p className="mt-4 rounded-2xl bg-red-50 p-4 text-sm font-medium text-red-700">
+          <p className="mt-4 rounded-md bg-red-50 p-4 text-sm font-medium text-red-700">
             Bookings could not load: {error.message}
           </p>
         ) : null}
 
-        <div className="mt-6 overflow-hidden rounded-[2rem] border border-line bg-surface">
+        <div className="mt-6 overflow-hidden rounded-lg border border-line bg-surface">
           <div className="grid grid-cols-[1.2fr_1fr_0.7fr_1fr] gap-3 border-b border-line px-5 py-3 text-sm font-semibold text-muted max-md:hidden">
             <span>Customer</span>
             <span>Booking</span>
@@ -154,7 +154,7 @@ export default async function AdminBookingsPage({
                     {formatBookingDate(booking.date_time)} at {formatBookingTime(booking.date_time)}
                   </p>
                 </div>
-                <span className="w-fit rounded-full bg-background px-3 py-1 text-xs font-semibold">
+                <span className="w-fit rounded-md bg-background px-3 py-1 text-xs font-semibold">
                   {booking.status}
                 </span>
                 <div className="flex flex-wrap gap-2 md:justify-end">
@@ -162,7 +162,7 @@ export default async function AdminBookingsPage({
                     <>
                       <Link
                         href={`/admin/bookings/${booking.id}/complete`}
-                        className="inline-flex rounded-full bg-foreground px-4 py-2 text-sm font-semibold text-background"
+                        className="inline-flex rounded-md bg-foreground px-4 py-2 text-sm font-semibold text-background"
                       >
                         Complete
                       </Link>
@@ -182,12 +182,12 @@ export default async function AdminBookingsPage({
           <span>Showing up to {pageSize} of {count ?? 0} results</span>
           <div className="flex gap-2">
             {currentPage > 1 ? (
-              <Link className="rounded-full bg-surface px-4 py-2 ring-1 ring-line" href={`/admin/bookings?q=${q}&status=${status}&page=${currentPage - 1}`}>
+              <Link className="rounded-md bg-surface px-4 py-2 ring-1 ring-line" href={`/admin/bookings?q=${q}&status=${status}&page=${currentPage - 1}`}>
                 Previous
               </Link>
             ) : null}
             {(count ?? 0) > to + 1 ? (
-              <Link className="rounded-full bg-surface px-4 py-2 ring-1 ring-line" href={`/admin/bookings?q=${q}&status=${status}&page=${currentPage + 1}`}>
+              <Link className="rounded-md bg-surface px-4 py-2 ring-1 ring-line" href={`/admin/bookings?q=${q}&status=${status}&page=${currentPage + 1}`}>
                 Next
               </Link>
             ) : null}

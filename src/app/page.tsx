@@ -82,11 +82,11 @@ function LoggedOutHome({
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-12 px-4 pb-28 pt-6 sm:pt-8 lg:pb-14">
-        <section className="relative overflow-hidden rounded-[2rem] border border-line bg-[radial-gradient(circle_at_70%_20%,rgba(214,168,79,0.18),transparent_24rem),linear-gradient(135deg,#121514,#080a09_62%,#171a18)] p-5 luxury-glow sm:p-7 lg:p-8">
+      <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-10 px-4 pb-24 pt-6 sm:pt-8 lg:pb-12">
+        <section className="border border-line bg-surface p-5 sm:p-6 lg:p-7">
           <div className="grid gap-7 lg:grid-cols-[0.86fr_1.14fr] lg:items-center">
             <div className="relative z-10">
-              <h1 className="text-3xl font-black tracking-tight text-foreground sm:text-5xl">
+              <h1 className="text-3xl font-semibold text-foreground sm:text-5xl">
                 Private cuts by appointment.
               </h1>
               <p className="mt-5 max-w-lg text-base leading-7 text-muted">
@@ -100,7 +100,7 @@ function LoggedOutHome({
                 </Link>
                 <Link
                   href="#recent-cuts"
-                  className="inline-flex h-12 items-center justify-center rounded-full border border-line px-5 text-sm font-bold text-foreground transition hover:border-gold/60 hover:text-gold"
+                  className="inline-flex h-10 items-center justify-center rounded-md border border-line px-4 text-sm font-semibold text-foreground transition hover:border-gold/60 hover:text-gold"
                 >
                   View Recent Cuts
                 </Link>
@@ -108,7 +108,7 @@ function LoggedOutHome({
             </div>
 
             <div className="relative min-h-[310px] sm:min-h-[350px] lg:min-h-[360px]">
-              <div className="absolute inset-0 overflow-hidden rounded-[2.25rem] border border-line bg-secondary-card luxury-glow">
+              <div className="absolute inset-0 overflow-hidden rounded-lg border border-line bg-secondary-card">
                 <Image
                   src="/images/haircut 1.jpg"
                   alt="Fresh MoBlendz haircut"
@@ -117,22 +117,19 @@ function LoggedOutHome({
                   sizes="(min-width: 1024px) 50vw, 100vw"
                   className="object-cover"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-background via-background/15 to-transparent" />
-                <div className="absolute left-5 top-5 rounded-full border border-gold/30 bg-background/75 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-gold backdrop-blur">
-                  Your Next Cut Starts Here
-                </div>
+                <div className="absolute inset-0 bg-black/10" />
               </div>
 
-              <DarkCard className="absolute bottom-5 left-5 right-5 p-5 sm:left-auto sm:w-80">
+              <DarkCard className="absolute bottom-4 left-4 right-4 p-4 sm:left-auto sm:w-72">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-black uppercase tracking-[0.2em] text-gold">
+                    <p className="text-sm font-semibold text-muted">
                       Free Cut Progress
                     </p>
-                    <p className="mt-3 text-4xl font-black">2 / {paidNeeded}</p>
+                    <p className="mt-2 text-3xl font-semibold">2 / {paidNeeded}</p>
                     <p className="mt-1 text-sm text-muted">paid visits</p>
                   </div>
-                  <div className="grid size-16 place-items-center rounded-3xl bg-gold/10 text-gold">
+                  <div className="text-gold">
                     <Star className="fill-gold" />
                   </div>
                 </div>
@@ -140,7 +137,7 @@ function LoggedOutHome({
                   {Array.from({ length: paidNeeded }).map((_, index) => (
                     <span
                       key={index}
-                      className={`h-3 flex-1 rounded-full ${
+                      className={`h-2 flex-1 rounded-sm ${
                         index < 2 ? "bg-gold" : "bg-secondary-card"
                       }`}
                     />
@@ -195,10 +192,10 @@ function CustomerHome({
       <main className="mx-auto grid w-full max-w-7xl gap-5 px-4 pb-28 pt-8 lg:grid-cols-[1.05fr_0.95fr] lg:pb-16">
         <section className="space-y-5">
           <DarkCard className="p-6 sm:p-8">
-            <p className="text-xs font-black uppercase tracking-[0.22em] text-gold">
+            <p className="text-sm font-semibold text-muted">
               MoBlendz dashboard
             </p>
-            <h1 className="mt-3 text-4xl font-black sm:text-5xl">
+            <h1 className="mt-2 text-3xl font-semibold sm:text-4xl">
               Welcome back, {firstName}.
             </h1>
             <p className="mt-3 text-lg text-muted">Ready for your next cut?</p>
@@ -208,7 +205,7 @@ function CustomerHome({
               </Link>
               <Link
                 href="/bookings"
-                className="inline-flex h-12 items-center justify-center rounded-full border border-line px-5 text-sm font-bold text-foreground"
+                className="inline-flex h-10 items-center justify-center rounded-md border border-line px-4 text-sm font-semibold text-foreground"
               >
                 My Bookings
               </Link>
@@ -218,12 +215,12 @@ function CustomerHome({
           <DarkCard className="p-5" >
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.2em] text-gold">
-                  Next appointment
-                </p>
+                  <p className="text-sm font-semibold text-muted">
+                    Next appointment
+                  </p>
                 {upcoming ? (
                   <>
-                    <h2 className="mt-3 text-2xl font-black">
+                    <h2 className="mt-2 text-2xl font-semibold">
                       {serviceLabels[upcoming.service_type]}
                     </h2>
                     <p className="mt-2 text-sm text-muted">
@@ -233,7 +230,7 @@ function CustomerHome({
                   </>
                 ) : (
                   <>
-                    <h2 className="mt-3 text-2xl font-black">No upcoming appointment</h2>
+                    <h2 className="mt-2 text-2xl font-semibold">No upcoming appointment</h2>
                     <p className="mt-2 text-sm text-muted">
                       Lock in your next spot when you are ready.
                     </p>
@@ -253,14 +250,14 @@ function CustomerHome({
             <DarkCard className="p-5">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-black uppercase tracking-[0.2em] text-gold">
+                  <p className="text-sm font-semibold text-muted">
                     Loyalty Rewards
                   </p>
-                  <h2 className="mt-2 text-3xl font-black">{progress} / {paidNeeded}</h2>
+                  <h2 className="mt-2 text-3xl font-semibold">{progress} / {paidNeeded}</h2>
                   <p className="text-sm text-muted">paid cuts toward your free cut</p>
                 </div>
                 {loyalty?.free_haircuts_available ? (
-                  <span className="rounded-full border border-gold/35 bg-gold/10 px-3 py-1 text-xs font-black text-gold">
+                  <span className="rounded-md border border-gold/35 bg-gold/10 px-2 py-1 text-xs font-semibold text-gold">
                     Free cut available
                   </span>
                 ) : null}
@@ -269,7 +266,7 @@ function CustomerHome({
                 {Array.from({ length: paidNeeded }).map((_, index) => (
                   <span
                     key={index}
-                    className={`h-3 flex-1 rounded-full ${
+                    className={`h-2 flex-1 rounded-sm ${
                       index < progress ? "bg-gold" : "bg-secondary-card"
                     }`}
                   />
@@ -298,10 +295,10 @@ function AdminHome({ profile }: { profile: Profile }) {
       <SiteHeader profile={profile} />
       <main className="mx-auto w-full max-w-7xl px-4 pb-28 pt-8 lg:pb-16">
         <DarkCard className="p-6 sm:p-10">
-          <p className="text-xs font-black uppercase tracking-[0.22em] text-gold">
+          <p className="text-sm font-semibold text-muted">
             Admin
           </p>
-          <h1 className="mt-3 text-5xl font-black">MoBlendz command center.</h1>
+          <h1 className="mt-2 text-3xl font-semibold">MoBlendz admin</h1>
           <p className="mt-4 max-w-2xl text-muted">
             Manage today&apos;s bookings, complete cuts, cancel appointments,
             view customers, and track cash earnings.
@@ -310,7 +307,7 @@ function AdminHome({ profile }: { profile: Profile }) {
             <Link href="/admin">
               <GoldButton>Admin Dashboard</GoldButton>
             </Link>
-            <Link className="inline-flex h-12 items-center justify-center rounded-full border border-line px-5 text-sm font-bold" href="/admin/bookings">
+            <Link className="inline-flex h-10 items-center justify-center rounded-md border border-line px-4 text-sm font-semibold" href="/admin/bookings">
               View Bookings
             </Link>
           </div>
@@ -355,16 +352,16 @@ function ServiceCard({
   href?: string;
 }) {
   return (
-    <DarkCard className="group p-6 transition hover:-translate-y-1 hover:border-gold/60 hover:shadow-[0_20px_70px_rgba(214,168,79,0.12)]">
+    <DarkCard className="p-5 transition-colors hover:border-gold/60">
       <div className="flex items-start justify-between gap-4">
-        <div className="grid size-14 place-items-center rounded-3xl bg-gold/10 text-gold">
+        <div className="text-gold">
           {icon}
         </div>
-        <p className="text-3xl font-black text-gold">{price}</p>
+        <p className="text-2xl font-semibold text-gold">{price}</p>
       </div>
-      <h3 className="mt-6 text-2xl font-black">{title}</h3>
+      <h3 className="mt-4 text-xl font-semibold">{title}</h3>
       <p className="mt-2 text-sm leading-6 text-muted">{copy}</p>
-      <Link href={href} className="mt-6 inline-flex rounded-full border border-line px-4 py-2 text-sm font-bold text-gold transition group-hover:border-gold/70">
+      <Link href={href} className="mt-5 inline-flex rounded-md border border-line px-3 py-2 text-sm font-semibold text-gold transition hover:border-gold/70">
         Book service
       </Link>
     </DarkCard>
@@ -373,17 +370,17 @@ function ServiceCard({
 
 function RecentCutCard({ title, image }: { title: string; image: string }) {
   return (
-    <div className="group relative min-h-[340px] overflow-hidden rounded-[2rem] border border-line bg-secondary-card luxury-glow">
+    <div className="relative min-h-[300px] overflow-hidden rounded-lg border border-line bg-secondary-card">
       <Image
         src={image}
         alt={title}
         fill
         sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-        className="object-cover transition duration-500 group-hover:scale-105"
+        className="object-cover"
       />
       <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
       <div className="absolute bottom-4 left-4 right-4">
-        <p className="rounded-full border border-gold/30 bg-background/75 px-4 py-2 text-sm font-black text-gold backdrop-blur">
+        <p className="rounded-md border border-line bg-background px-3 py-2 text-sm font-semibold text-gold">
           {title}
         </p>
       </div>
@@ -401,8 +398,8 @@ function QuickAction({
   label: string;
 }) {
   return (
-    <Link href={href} className="flex items-center gap-3 rounded-3xl border border-line bg-surface p-4 font-black transition hover:border-gold/60">
-      <span className="grid size-10 place-items-center rounded-2xl bg-gold/10 text-gold">
+    <Link href={href} className="flex items-center gap-3 rounded-lg border border-line bg-surface p-3 font-semibold transition hover:border-gold/60">
+      <span className="text-gold">
         {icon}
       </span>
       {label}

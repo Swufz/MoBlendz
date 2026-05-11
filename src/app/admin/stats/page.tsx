@@ -58,13 +58,13 @@ export default async function AdminStatsPage() {
             </p>
             <h1 className="text-3xl font-semibold">Performance</h1>
           </div>
-          <Link href="/admin" className="rounded-full bg-barber-blue px-4 py-2 text-sm font-semibold">
+          <Link href="/admin" className="rounded-md bg-barber-blue px-4 py-2 text-sm font-semibold">
             Dashboard
           </Link>
         </div>
 
         {error ? (
-          <p className="mt-4 rounded-2xl bg-red-50 p-4 text-sm font-medium text-red-700">
+          <p className="mt-4 rounded-md bg-red-50 p-4 text-sm font-medium text-red-700">
             Stats could not load: {error.message}
           </p>
         ) : null}
@@ -96,7 +96,7 @@ function StatCard({
   value: string | number;
 }) {
   return (
-    <div className="rounded-3xl bg-surface p-5 ring-1 ring-line">
+    <div className="rounded-lg bg-surface p-5 ring-1 ring-line">
       <div className="text-barber-blue-strong">{icon}</div>
       <p className="mt-4 text-sm text-muted">{label}</p>
       <p className="text-3xl font-semibold">{value}</p>

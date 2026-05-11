@@ -18,7 +18,7 @@ export default async function SettingsPage() {
           Admin settings
         </p>
         <h1 className="text-3xl font-semibold">Pricing, durations, and hours</h1>
-        <section className="mt-6 grid gap-4 rounded-[2rem] border border-line bg-surface p-5 shadow-sm sm:grid-cols-2">
+        <section className="mt-6 grid gap-4 rounded-lg border border-line bg-surface p-5 shadow-sm sm:grid-cols-2">
           <Setting label="Haircut price" value={`$${settings.haircut_price}`} />
           <Setting label="Haircut + beard price" value={`$${settings.haircut_beard_price}`} />
           <Setting label="Loyalty requirement" value={`${settings.loyalty_required_haircuts}th cut free`} />
@@ -33,11 +33,11 @@ export default async function SettingsPage() {
             }`}
           />
         </section>
-        <section className="mt-5 rounded-[2rem] border border-line bg-surface p-5 shadow-sm">
+        <section className="mt-5 rounded-lg border border-line bg-surface p-5 shadow-sm">
           <h2 className="font-semibold">Business hours</h2>
           <div className="mt-4 grid gap-2">
             {Object.entries(settings.business_hours).map(([day, hours]) => (
-              <div key={day} className="flex items-center justify-between rounded-2xl bg-background px-4 py-3">
+              <div key={day} className="flex items-center justify-between rounded-md bg-background px-4 py-3">
                 <span className="capitalize">{day}</span>
                 <span className="text-sm font-semibold text-muted">
                   {hours.enabled ? `${hours.start} - ${hours.end}` : "Closed"}
@@ -58,7 +58,7 @@ export default async function SettingsPage() {
 
 function Setting({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl bg-background p-4">
+    <div className="rounded-md bg-background p-4">
       <p className="text-sm text-muted">{label}</p>
       <p className="mt-1 text-lg font-semibold">{value}</p>
     </div>

@@ -40,7 +40,7 @@ export function GoogleSignInButton() {
         type="button"
         onClick={handleSignIn}
         disabled={isLoading}
-        className="h-12 w-full rounded-full bg-foreground px-5 font-semibold text-background disabled:opacity-60"
+        className="h-12 w-full rounded-md bg-foreground px-5 font-semibold text-background disabled:opacity-60"
       >
         {isLoading ? "Redirecting..." : "Continue with Google"}
       </button>

@@ -81,7 +81,7 @@ export default async function CompleteBookingPage({
           </p>
         </div>
 
-        <section className="mt-6 rounded-[2rem] border border-line bg-surface p-5 shadow-sm">
+        <section className="mt-6 rounded-lg border border-line bg-surface p-5 shadow-sm">
           <div className="border-b border-line pb-4">
             <p className="text-sm text-muted">Customer</p>
             <p className="text-xl font-semibold">{customer?.full_name ?? "Customer"}</p>
@@ -133,7 +133,7 @@ function SummaryRow({
   strong?: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between gap-4 rounded-2xl bg-background px-4 py-3">
+    <div className="flex items-center justify-between gap-4 rounded-md bg-background px-4 py-3">
       <dt className="text-sm text-muted">{label}</dt>
       <dd className={strong ? "text-2xl font-semibold" : "font-semibold"}>{value}</dd>
     </div>

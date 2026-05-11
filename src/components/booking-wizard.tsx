@@ -380,15 +380,15 @@ export function BookingWizard({
   }
 
   return (
-    <div className="mx-auto w-full max-w-xl overflow-hidden rounded-[2rem] border border-line bg-surface luxury-glow">
+    <div className="mx-auto w-full max-w-xl overflow-hidden rounded-lg border border-line bg-surface">
       <div className="flex items-center justify-between border-b border-line bg-secondary-card/70 px-5 py-4">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.2em] text-gold">
-            Book Your Blend
+          <p className="text-sm font-semibold text-muted">
+            Booking
           </p>
-          <h1 className="text-2xl font-black">{getStepTitle(step)}</h1>
+          <h1 className="text-2xl font-semibold">{getStepTitle(step)}</h1>
         </div>
-        <div className="rounded-full border border-gold/35 bg-gold/10 px-3 py-1 text-sm font-black text-gold">
+        <div className="rounded-md border border-line px-2 py-1 text-sm font-semibold text-gold">
           {Math.min(step + 1, 3)}/3
         </div>
       </div>
@@ -403,15 +403,15 @@ export function BookingWizard({
                   key={service}
                   type="button"
                   onClick={() => setServiceType(service)}
-                  className={`flex items-center justify-between rounded-3xl border p-5 text-left transition ${
+                  className={`flex items-center justify-between rounded-lg border p-4 text-left transition ${
                     active
-                      ? "border-gold bg-gold/15 text-foreground shadow-[0_0_40px_rgba(214,168,79,0.12)]"
+                      ? "border-gold bg-gold/10 text-foreground"
                       : "border-line bg-background hover:border-gold/50"
                   }`}
                 >
                   <span className="flex items-center gap-3">
                     <span
-                      className={`grid size-11 place-items-center rounded-full ${
+                      className={`grid size-10 place-items-center rounded-md ${
                         active ? "bg-gold text-background" : "bg-secondary-card text-gold"
                       }`}
                     >
@@ -447,7 +447,7 @@ export function BookingWizard({
                   setTime("");
                 }}
                 type="date"
-                className="mt-2 h-12 w-full rounded-2xl border border-line bg-background px-4 text-foreground"
+                className="mt-2 h-10 w-full rounded-md border border-line bg-background px-3 text-foreground"
               />
             </label>
             <div>
@@ -458,7 +458,7 @@ export function BookingWizard({
                     {Array.from({ length: 6 }).map((_, index) => (
                       <div
                         key={index}
-                        className="h-11 animate-pulse rounded-2xl border border-line bg-secondary-card"
+                        className="h-10 animate-pulse rounded-md border border-line bg-secondary-card"
                       />
                     ))}
                   </div>
@@ -470,9 +470,9 @@ export function BookingWizard({
                         key={slot.toISOString()}
                         type="button"
                         onClick={() => setTime(value)}
-                        className={`h-11 rounded-2xl text-sm font-semibold ${
+                        className={`h-10 rounded-md text-sm font-semibold ${
                           time === value
-                            ? "gold-gradient"
+                            ? "bg-gold text-background"
                             : "border border-line bg-secondary-card text-foreground hover:border-gold/50"
                         }`}
                       >
@@ -481,7 +481,7 @@ export function BookingWizard({
                     );
                   })
                 ) : (
-                  <p className="col-span-3 rounded-2xl bg-background p-4 text-sm text-muted">
+                  <p className="col-span-3 rounded-md bg-background p-4 text-sm text-muted">
                     No times available for that day.
                   </p>
                 )}
@@ -510,7 +510,7 @@ export function BookingWizard({
 
         {step === 3 ? (
           <div className="space-y-4">
-            <div className="rounded-3xl bg-background p-4">
+            <div className="rounded-lg bg-background p-4">
               <p className="text-sm text-muted">One last thing</p>
               <p className="mt-1 text-lg font-semibold">Add your phone number</p>
               <p className="mt-2 text-sm leading-6 text-muted">
@@ -526,7 +526,7 @@ export function BookingWizard({
                 type="tel"
                 inputMode="tel"
                 placeholder="(555) 555-5555"
-                className="mt-2 h-12 w-full rounded-2xl border border-line bg-background px-4 text-foreground"
+                className="mt-2 h-10 w-full rounded-md border border-line bg-background px-3 text-foreground"
               />
             </label>
           </div>
@@ -543,7 +543,7 @@ export function BookingWizard({
             setStep((value) => (value === 3 ? 2 : Math.max(0, value - 1)));
           }}
           disabled={step === 0 || isPending || isSigningIn}
-          className="inline-flex h-12 items-center gap-2 rounded-full px-4 text-sm font-semibold text-muted disabled:opacity-30"
+          className="inline-flex h-10 items-center gap-2 rounded-md px-3 text-sm font-semibold text-muted disabled:opacity-30"
         >
           <ArrowLeft size={18} />
           Back
@@ -553,7 +553,7 @@ export function BookingWizard({
             type="button"
             onClick={() => setStep((value) => value + 1)}
             disabled={step === 1 && !time}
-            className="gold-gradient inline-flex h-12 items-center gap-2 rounded-full px-5 text-sm font-black disabled:opacity-40"
+            className="inline-flex h-10 items-center gap-2 rounded-md bg-gold px-4 text-sm font-semibold text-background disabled:opacity-40"
           >
             Next
             <ArrowRight size={18} />
@@ -563,7 +563,7 @@ export function BookingWizard({
             type="button"
             onClick={() => submitDraft(currentDraft(), phone)}
             disabled={isPending || phone.trim().length < 7}
-            className="gold-gradient inline-flex h-12 items-center gap-2 rounded-full px-5 text-sm font-black disabled:opacity-40"
+            className="inline-flex h-10 items-center gap-2 rounded-md bg-gold px-4 text-sm font-semibold text-background disabled:opacity-40"
           >
             <Check size={18} />
             {isPending ? "Saving..." : "Save booking"}
@@ -573,7 +573,7 @@ export function BookingWizard({
             type="button"
             onClick={handleConfirm}
             disabled={isPending || isSigningIn || !time}
-            className="gold-gradient inline-flex h-12 items-center gap-2 rounded-full px-5 text-sm font-black disabled:opacity-40"
+            className="inline-flex h-10 items-center gap-2 rounded-md bg-gold px-4 text-sm font-semibold text-background disabled:opacity-40"
           >
             <Check size={18} />
             {isSigningIn
@@ -623,16 +623,16 @@ function BookingReview({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-3xl border border-line bg-background p-4">
+      <div className="rounded-lg border border-line bg-background p-4">
         <p className="text-sm text-muted">Service booked</p>
         <p className="mt-1 text-lg font-semibold">{serviceLabels[serviceType]}</p>
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <div className="rounded-3xl border border-line bg-background p-4">
+        <div className="rounded-lg border border-line bg-background p-4">
           <p className="text-sm text-muted">Date</p>
           <p className="mt-1 font-semibold">{formatBookingDate(date)}</p>
         </div>
-        <div className="rounded-3xl border border-line bg-background p-4">
+        <div className="rounded-lg border border-line bg-background p-4">
           <p className="text-sm text-muted">Time</p>
           <p className="mt-1 font-semibold">{time || "Choose time"}</p>
         </div>
@@ -643,11 +643,11 @@ function BookingReview({
           value={notes}
           onChange={(event) => setNotes(event.target.value)}
           rows={4}
-          className="mt-2 w-full rounded-3xl border border-line bg-background p-4 text-foreground"
+          className="mt-2 w-full rounded-md border border-line bg-background p-3 text-foreground"
           placeholder="Optional"
         />
       </label>
-      <div className="rounded-3xl border border-line bg-background p-4">
+      <div className="rounded-lg border border-line bg-background p-4">
         <label className="block">
           <span className="text-sm font-semibold text-foreground">
             Have a referral code?
@@ -658,7 +658,7 @@ function BookingReview({
               setReferralCode(normalizeReferralCode(event.target.value))
             }
             placeholder="Enter referral code"
-            className="mt-3 h-12 w-full rounded-2xl border border-line bg-surface px-4 text-foreground placeholder:text-muted"
+            className="mt-3 h-10 w-full rounded-md border border-line bg-surface px-3 text-foreground placeholder:text-muted"
           />
         </label>
         <p className="mt-2 text-sm leading-6 text-muted">
@@ -681,7 +681,7 @@ function BookingReview({
           </p>
         ) : null}
       </div>
-      <div className="rounded-3xl border border-gold/40 bg-gold/10 p-5">
+      <div className="rounded-lg border border-line bg-background p-4">
         <p className="text-sm text-muted">Price breakdown</p>
         <div className="mt-4 grid gap-2 text-sm">
           <div className="flex items-center justify-between">
@@ -691,13 +691,13 @@ function BookingReview({
           {referralDiscountAmount > 0 ? (
             <div className="flex items-center justify-between text-success">
               <span className="font-bold">Referral discount applied</span>
-              <span className="font-black">-${referralDiscountAmount}</span>
+              <span className="font-semibold">-${referralDiscountAmount}</span>
             </div>
           ) : null}
         </div>
         <div className="mt-4 border-t border-gold/25 pt-4">
           <p className="text-sm text-muted">Cash due</p>
-          <p className="text-3xl font-black text-gold">${cashDue}</p>
+          <p className="text-3xl font-semibold text-gold">${cashDue}</p>
         </div>
         <p className="mt-1 text-sm text-muted">{duration} minute appointment</p>
       </div>
@@ -715,14 +715,14 @@ function BookingConfirmation({
   const dateTime = new Date(booking.dateTime);
 
   return (
-    <section className="mx-auto w-full max-w-xl rounded-[2rem] border border-line bg-surface p-5 luxury-glow">
-      <div className="grid size-14 place-items-center rounded-full bg-gold/15 text-gold">
+    <section className="mx-auto w-full max-w-xl rounded-lg border border-line bg-surface p-5">
+      <div className="text-gold">
         <Check />
       </div>
-      <p className="mt-5 text-sm font-semibold uppercase tracking-[0.16em] text-muted">
+      <p className="mt-5 text-sm font-semibold text-muted">
         Booking confirmed
       </p>
-      <h1 className="mt-2 text-3xl font-black">You are on the schedule.</h1>
+      <h1 className="mt-2 text-3xl font-semibold">You are on the schedule.</h1>
       <dl className="mt-6 grid gap-3">
         <SummaryRow label="Service" value={serviceLabels[booking.serviceType]} />
         <SummaryRow label="Date" value={formatBookingDate(dateTime)} />
@@ -733,7 +733,7 @@ function BookingConfirmation({
       <button
         type="button"
         onClick={onRestart}
-        className="gold-gradient mt-6 h-12 w-full rounded-full px-5 font-black"
+        className="mt-6 h-10 w-full rounded-md bg-gold px-4 font-semibold text-background"
       >
         Book another cut
       </button>
@@ -743,7 +743,7 @@ function BookingConfirmation({
 
 function SummaryRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between gap-4 rounded-2xl border border-line bg-background px-4 py-3">
+    <div className="flex items-center justify-between gap-4 rounded-md border border-line bg-background px-4 py-3">
       <dt className="text-sm text-muted">{label}</dt>
       <dd className="font-semibold capitalize">{value}</dd>
     </div>
