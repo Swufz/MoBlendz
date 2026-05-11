@@ -9,19 +9,17 @@ import {
   Star,
   UserRound,
 } from "lucide-react";
-import { DarkCard, GoldButton, SectionHeader, StatusBadge } from "@/components/luxury-ui";
+import { DarkCard, GoldButton, SectionHeader } from "@/components/luxury-ui";
 import { ReferralCard } from "@/components/referral-card";
+import { RecentCutsSlideshow } from "@/components/recent-cuts-slideshow";
 import { SiteHeader } from "@/components/site-header";
-import { formatBookingDate, formatBookingTime } from "@/lib/business-logic";
-import { serviceLabels } from "@/lib/config";
 import {
   getAdminSettings,
-  getMyBookings,
   getMyLoyalty,
   getSessionProfile,
   getUnusedReferralCredits,
 } from "@/lib/data";
-import type { Booking, Loyalty, Profile } from "@/lib/types";
+import type { Loyalty, Profile } from "@/lib/types";
 
 const recentCuts = [
   { title: "Scissor Work", image: "/images/haircut 1.jpg" },
@@ -43,16 +41,14 @@ export default async function Home({
   }
 
   if (profile?.role === "customer") {
-    const [loyalty, bookings, credits] = await Promise.all([
+    const [loyalty, credits] = await Promise.all([
       getMyLoyalty(profile.id),
-      getMyBookings(profile.id),
       getUnusedReferralCredits(profile.id),
     ]);
 
     return (
       <CustomerHome
         activeCredits={credits.length}
-        bookings={bookings}
         loyalty={loyalty}
         paidNeeded={settings.loyalty_required_haircuts - 1}
         profile={profile}
@@ -169,21 +165,16 @@ function LoggedOutHome({
 
 function CustomerHome({
   activeCredits,
-  bookings,
   loyalty,
   paidNeeded,
   profile,
 }: {
   activeCredits: number;
-  bookings: Booking[];
   loyalty: Loyalty | null;
   paidNeeded: number;
   profile: Profile;
 }) {
   const firstName = profile.full_name.split(" ")[0] || "there";
-  const upcoming = bookings.find((booking) =>
-    ["pending", "confirmed"].includes(booking.status),
-  );
   const progress = Math.min(loyalty?.paid_haircuts_since_last_free ?? 0, paidNeeded);
 
   return (
@@ -212,37 +203,6 @@ function CustomerHome({
             </div>
           </DarkCard>
 
-          <DarkCard className="p-5" >
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                  <p className="text-sm font-semibold text-muted">
-                    Next appointment
-                  </p>
-                {upcoming ? (
-                  <>
-                    <h2 className="mt-2 text-2xl font-semibold">
-                      {serviceLabels[upcoming.service_type]}
-                    </h2>
-                    <p className="mt-2 text-sm text-muted">
-                      {formatBookingDate(upcoming.date_time)} at{" "}
-                      {formatBookingTime(upcoming.date_time)}
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <h2 className="mt-2 text-2xl font-semibold">No upcoming appointment</h2>
-                    <p className="mt-2 text-sm text-muted">
-                      Lock in your next spot when you are ready.
-                    </p>
-                  </>
-                )}
-              </div>
-              {upcoming ? <StatusBadge status={upcoming.status} /> : null}
-            </div>
-            <Link href={upcoming ? "/bookings" : "/book"} className="mt-5 inline-flex">
-              <GoldButton>{upcoming ? "View Booking" : "Book Appointment"}</GoldButton>
-            </Link>
-          </DarkCard>
         </section>
 
         <section className="space-y-5">
@@ -329,11 +289,7 @@ function RecentCutsSection({ bookingHref = "/booking" }: { bookingHref?: string 
           <GoldButton>Like this style? Book your cut.</GoldButton>
         </Link>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {recentCuts.map((cut) => (
-          <RecentCutCard key={cut.title} title={cut.title} image={cut.image} />
-        ))}
-      </div>
+      <RecentCutsSlideshow cuts={recentCuts} />
     </section>
   );
 }
@@ -365,26 +321,6 @@ function ServiceCard({
         Book service
       </Link>
     </DarkCard>
-  );
-}
-
-function RecentCutCard({ title, image }: { title: string; image: string }) {
-  return (
-    <div className="relative min-h-[300px] overflow-hidden rounded-lg border border-line bg-secondary-card">
-      <Image
-        src={image}
-        alt={title}
-        fill
-        sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-        className="object-cover"
-      />
-      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
-      <div className="absolute bottom-4 left-4 right-4">
-        <p className="rounded-md border border-line bg-background px-3 py-2 text-sm font-semibold text-gold">
-          {title}
-        </p>
-      </div>
-    </div>
   );
 }
 
