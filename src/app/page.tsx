@@ -25,6 +25,7 @@ const recentCuts = [
   { title: "Scissor Work", image: "/images/haircut 1.jpg" },
   { title: "Low Taper Mullet", image: "/images/haircut 2.jpg" },
   { title: "Low taper fade", image: "/images/haircut 3.jpg" },
+  { title: "Fresh blend", image: "/images/haircut 4.jpg" },
 ];
 
 export default async function Home({
