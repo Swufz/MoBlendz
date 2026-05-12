@@ -19,8 +19,32 @@ const allura = Allura({
 });
 
 export const metadata: Metadata = {
-  title: "Mo Blendz",
-  description: "Book clean cuts, track rewards, and manage appointments.",
+  metadataBase: new URL("https://www.moblendz.co"),
+  title: "MoBlendz | Private Barber Appointments",
+  description:
+    "Book your next cut with MoBlendz. Choose your service, pick a time, and pay cash when you arrive.",
+  openGraph: {
+    title: "MoBlendz | Private Barber Appointments",
+    description:
+      "Book your next cut with MoBlendz. Choose your service, pick a time, and pay cash when you arrive.",
+    url: "https://www.moblendz.co",
+    siteName: "MoBlendz",
+    images: [
+      {
+        url: "https://www.moblendz.co/mb-logo.png",
+        width: 1200,
+        height: 630,
+        alt: "MoBlendz logo",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "MoBlendz | Private Barber Appointments",
+    description:
+      "Book your next cut with MoBlendz. Choose your service, pick a time, and pay cash when you arrive.",
+    images: ["https://www.moblendz.co/mb-logo.png"],
+  },
 };
 
 export default function RootLayout({
