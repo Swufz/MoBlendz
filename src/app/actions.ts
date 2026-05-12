@@ -17,6 +17,7 @@ import {
   getLocalDateBounds,
   isWithinHardCodedAvailability,
 } from "@/lib/hard-coded-availability";
+import { sendBookingConfirmationEmails } from "@/lib/email/send-booking-email";
 import { baseReferralCodeFromName, normalizeReferralCode } from "@/lib/referrals";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Booking, DiscountCredit, Loyalty, Profile } from "@/lib/types";
@@ -220,6 +221,10 @@ export async function createBooking(formData: FormData) {
   if (error) {
     return { ok: false, message: error.message };
   }
+
+  await sendBookingConfirmationEmails({ booking, profile }).catch((sendError) => {
+    console.error("Booking email dispatch failed.", sendError);
+  });
 
   revalidatePath("/");
   revalidatePath("/booking");

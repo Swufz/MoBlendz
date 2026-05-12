@@ -16,6 +16,7 @@ Tailwind CSS, and Supabase.
 - Admin dashboard with earnings and customer stats
 - Admin completion confirmation summary before saving a haircut
 - Loyalty and referral credit business logic
+- Resend email confirmations for new bookings
 - Supabase RLS policies
 
 ## Local Setup
@@ -59,6 +60,34 @@ https://YOUR_PROJECT_REF.supabase.co/auth/v1/callback
 http://localhost:3000
 https://your-vercel-domain.vercel.app
 ```
+
+## Resend Email Confirmations
+
+Booking confirmation emails use Resend and run only on the server.
+
+1. Create a free Resend account at [resend.com](https://resend.com).
+2. Open **API Keys** in Resend and create an API key.
+3. Add these values to `.env.local`:
+
+```bash
+RESEND_API_KEY=your-resend-api-key
+EMAIL_FROM=MoBlendz <onboarding@resend.dev>
+ADMIN_EMAIL=your-email@example.com
+EMAIL_ENABLED=true
+```
+
+For local testing, `onboarding@resend.dev` works with Resend's test sender.
+In Vercel, add the same variables under **Project Settings > Environment
+Variables**, then redeploy.
+
+Later, verify `moblendz.co` in Resend and change `EMAIL_FROM` to something like:
+
+```bash
+EMAIL_FROM=MoBlendz <booking@moblendz.co>
+```
+
+If `EMAIL_ENABLED` is not `true`, the app logs `Email disabled. Skipping booking
+emails.` and still creates bookings normally.
 
 ## Admin User
 

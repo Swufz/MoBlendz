@@ -60,9 +60,17 @@ create table bookings (
   notes text,
   cancelled_at timestamptz,
   completed_at timestamptz,
+  customer_email_sent_at timestamptz,
+  admin_email_sent_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.bookings
+add column if not exists customer_email_sent_at timestamptz;
+
+alter table public.bookings
+add column if not exists admin_email_sent_at timestamptz;
 
 create index bookings_date_time_idx on bookings(date_time);
 create index bookings_status_idx on bookings(status);
