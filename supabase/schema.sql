@@ -76,6 +76,7 @@ create index bookings_date_time_idx on bookings(date_time);
 create index bookings_status_idx on bookings(status);
 create index bookings_user_id_idx on bookings(user_id);
 create index bookings_status_date_time_idx on bookings(status, date_time);
+create index if not exists bookings_user_status_datetime_idx on bookings(user_id, status, date_time);
 create index profiles_auth_user_id_idx on profiles(auth_user_id);
 create index profiles_phone_idx on profiles(phone);
 create index profiles_role_created_at_idx on profiles(role, created_at);

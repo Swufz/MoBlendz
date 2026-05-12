@@ -22,6 +22,9 @@ import { baseReferralCodeFromName, normalizeReferralCode } from "@/lib/referrals
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Booking, DiscountCredit, Loyalty, Profile } from "@/lib/types";
 
+const activeBookingLimitMessage =
+  "You already have 2 upcoming appointments. Please complete or cancel one before booking another.";
+
 const bookingSchema = z.object({
   serviceType: z.enum(["haircut", "haircut_beard"]),
   date: z.string().min(1),
@@ -147,6 +150,19 @@ export async function createBooking(formData: FormData) {
     profile = updatedProfile;
   }
 
+  if (!profile.phone) {
+    return {
+      ok: false,
+      phoneRequired: true,
+      message: "Add your phone number before confirming.",
+    };
+  }
+
+  const activeBookingCount = await countActiveUpcomingBookings(supabase, profile.id);
+  if (activeBookingCount >= 2) {
+    return { ok: false, message: activeBookingLimitMessage };
+  }
+
   const referralCode = normalizeReferralCode(parsed.data.referralCode ?? "");
   let referralDiscountEligible = false;
   if (referralCode) {
@@ -159,14 +175,6 @@ export async function createBooking(formData: FormData) {
       supabase,
       profile.id,
     ));
-  }
-
-  if (!profile.phone) {
-    return {
-      ok: false,
-      phoneRequired: true,
-      message: "Add your phone number before confirming.",
-    };
   }
 
   const settings = await getAdminSettings();
@@ -239,6 +247,49 @@ export async function createBooking(formData: FormData) {
       status: booking.status,
       durationMinutes: booking.duration_minutes,
     },
+  };
+}
+
+export async function getMyActiveUpcomingBookingLimitStatus() {
+  const supabase = await getConfiguredSupabaseClient();
+  if (!supabase) {
+    return {
+      ok: false,
+      count: 0,
+      isAtLimit: false,
+      message: "Supabase is not configured.",
+    };
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return {
+      ok: false,
+      count: 0,
+      isAtLimit: false,
+      message: "Sign in with Google to book.",
+    };
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("auth_user_id", user.id)
+    .maybeSingle<Pick<Profile, "id">>();
+
+  if (!profile) {
+    return { ok: true, count: 0, isAtLimit: false, message: "" };
+  }
+
+  const count = await countActiveUpcomingBookings(supabase, profile.id);
+
+  return {
+    ok: true,
+    count,
+    isAtLimit: count >= 2,
+    message: count >= 2 ? activeBookingLimitMessage : "",
   };
 }
 
@@ -999,6 +1050,20 @@ async function hasUsedReferralBookingDiscount(
     .in("status", ["pending", "confirmed", "completed"]);
 
   return Boolean(count && count > 0);
+}
+
+async function countActiveUpcomingBookings(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  userId: string,
+) {
+  const { count } = await supabase
+    .from("bookings")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .in("status", ["pending", "confirmed"])
+    .gt("date_time", new Date().toISOString());
+
+  return count ?? 0;
 }
 
 async function linkReferralCodeForCurrentUser(code: string) {

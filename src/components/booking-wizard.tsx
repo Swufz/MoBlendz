@@ -2,7 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { ArrowLeft, ArrowRight, Check, Scissors } from "lucide-react";
-import { createBooking, validateReferralCode } from "@/app/actions";
+import {
+  createBooking,
+  getMyActiveUpcomingBookingLimitStatus,
+  validateReferralCode,
+} from "@/app/actions";
 import { formatBookingDate, formatBookingTime } from "@/lib/business-logic";
 import {
   defaultAdminSettings,
@@ -88,6 +92,8 @@ export function BookingWizard({
   const [completedBooking, setCompletedBooking] = useState<CompletedBooking | null>(null);
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [isLoadingAvailability, setIsLoadingAvailability] = useState(false);
+  const [isCheckingBookingLimit, setIsCheckingBookingLimit] = useState(false);
+  const [bookingLimitMessage, setBookingLimitMessage] = useState("");
   const [activeBookings, setActiveBookings] = useState<ActiveBooking[]>([]);
   const [isPending, startTransition] = useTransition();
   const isCreatingRef = useRef(false);
@@ -120,6 +126,7 @@ export function BookingWizard({
   const referralDiscountAmount = isReferralValid
     ? Math.min(Number(settings.referral_discount_amount ?? 5), price)
     : 0;
+  const isBookingLimitReached = Boolean(bookingLimitMessage);
 
   useEffect(() => {
     const savedConfirmation = readCompletedBooking();
@@ -246,6 +253,40 @@ export function BookingWizard({
       isCurrent = false;
     };
   }, [date]);
+
+  useEffect(() => {
+    if (step !== 2 || !isLoggedIn) {
+      setBookingLimitMessage("");
+      setIsCheckingBookingLimit(false);
+      return;
+    }
+
+    let isCurrent = true;
+    setIsCheckingBookingLimit(true);
+
+    getMyActiveUpcomingBookingLimitStatus()
+      .then((result) => {
+        if (!isCurrent) {
+          return;
+        }
+
+        setBookingLimitMessage(result.isAtLimit ? result.message : "");
+      })
+      .catch(() => {
+        if (isCurrent) {
+          setBookingLimitMessage("");
+        }
+      })
+      .finally(() => {
+        if (isCurrent) {
+          setIsCheckingBookingLimit(false);
+        }
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [isLoggedIn, step]);
 
   function applyDraft(draft: PendingBooking) {
     setServiceType(draft.serviceType);
@@ -493,8 +534,10 @@ export function BookingWizard({
 
         {step === 2 ? (
           <BookingReview
+            bookingLimitMessage={bookingLimitMessage}
             date={selectedDate}
             duration={duration}
+            isCheckingBookingLimit={isCheckingBookingLimit}
             notes={notes}
             price={price}
             referralCode={referralCode}
@@ -573,7 +616,13 @@ export function BookingWizard({
           <button
             type="button"
             onClick={handleConfirm}
-            disabled={isPending || isSigningIn || !time}
+            disabled={
+              isPending ||
+              isSigningIn ||
+              isCheckingBookingLimit ||
+              isBookingLimitReached ||
+              !time
+            }
             className="inline-flex h-10 items-center gap-2 rounded-md bg-gold px-4 text-sm font-semibold text-background disabled:opacity-40"
           >
             <Check size={18} />
@@ -581,6 +630,8 @@ export function BookingWizard({
               ? "Redirecting..."
               : isPending
                 ? "Booking..."
+                : isCheckingBookingLimit
+                  ? "Checking..."
                 : isLoggedIn
                   ? "Confirm"
                   : "Sign in with Google to book"}
@@ -592,8 +643,10 @@ export function BookingWizard({
 }
 
 function BookingReview({
+  bookingLimitMessage,
   date,
   duration,
+  isCheckingBookingLimit,
   notes,
   price,
   referralCode,
@@ -606,8 +659,10 @@ function BookingReview({
   isCheckingReferral,
   isReferralValid,
 }: {
+  bookingLimitMessage: string;
   date: Date;
   duration: number;
+  isCheckingBookingLimit: boolean;
   notes: string;
   price: number;
   referralCode: string;
@@ -702,6 +757,15 @@ function BookingReview({
         </div>
         <p className="mt-1 text-sm text-muted">{duration} minute appointment</p>
       </div>
+      {isCheckingBookingLimit ? (
+        <p className="rounded-lg border border-line bg-background p-4 text-sm font-semibold text-muted">
+          Checking your upcoming appointments...
+        </p>
+      ) : bookingLimitMessage ? (
+        <p className="rounded-lg border border-danger/40 bg-danger/10 p-4 text-sm font-bold text-danger">
+          {bookingLimitMessage}
+        </p>
+      ) : null}
     </div>
   );
 }
