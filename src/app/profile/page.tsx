@@ -54,6 +54,7 @@ export default async function ProfilePage() {
           <div id="loyalty" className="scroll-mt-28">
             <LoyaltyTracker
               completed={loyalty?.paid_haircuts_since_last_free ?? 0}
+              freeHaircutsAvailable={loyalty?.free_haircuts_available ?? 0}
               required={settings.loyalty_required_haircuts}
             />
           </div>

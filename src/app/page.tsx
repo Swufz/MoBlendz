@@ -6,9 +6,9 @@ import {
   CalendarCheck,
   Scissors,
   Sparkles,
-  Star,
   UserRound,
 } from "lucide-react";
+import { LoyaltyProgressCard } from "@/components/loyalty-tracker";
 import { DarkCard, GoldButton, SectionHeader } from "@/components/luxury-ui";
 import { ReferralCard } from "@/components/referral-card";
 import { RecentCutsSlideshow } from "@/components/recent-cuts-slideshow";
@@ -117,33 +117,11 @@ function LoggedOutHome({
                 <div className="absolute inset-0 bg-black/10" />
               </div>
 
-              <DarkCard className="absolute bottom-4 left-4 right-4 p-4 sm:left-auto sm:w-72">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-semibold text-muted">
-                      Free Cut Progress
-                    </p>
-                    <p className="mt-2 text-3xl font-semibold">2 / {paidNeeded}</p>
-                    <p className="mt-1 text-sm text-muted">paid visits</p>
-                  </div>
-                  <div className="text-gold">
-                    <Star className="fill-gold" />
-                  </div>
-                </div>
-                <div className="mt-5 flex gap-2">
-                  {Array.from({ length: paidNeeded }).map((_, index) => (
-                    <span
-                      key={index}
-                      className={`h-2 flex-1 rounded-sm ${
-                        index < 2 ? "bg-gold" : "bg-secondary-card"
-                      }`}
-                    />
-                  ))}
-                </div>
-                <p className="mt-4 text-sm text-muted">
-                  Your 5th cut is FREE after 4 paid visits.
-                </p>
-              </DarkCard>
+              <LoyaltyProgressCard
+                className="absolute bottom-4 left-4 right-4 sm:left-auto sm:w-72"
+                completed={2}
+                required={paidNeeded + 1}
+              />
             </div>
           </div>
         </section>
@@ -176,7 +154,6 @@ function CustomerHome({
   profile: Profile;
 }) {
   const firstName = profile.full_name.split(" ")[0] || "there";
-  const progress = Math.min(loyalty?.paid_haircuts_since_last_free ?? 0, paidNeeded);
 
   return (
     <>
@@ -208,32 +185,11 @@ function CustomerHome({
 
         <section className="space-y-5">
           <div id="loyalty">
-            <DarkCard className="p-5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-semibold text-muted">
-                    Loyalty Rewards
-                  </p>
-                  <h2 className="mt-2 text-3xl font-semibold">{progress} / {paidNeeded}</h2>
-                  <p className="text-sm text-muted">paid cuts toward your free cut</p>
-                </div>
-                {loyalty?.free_haircuts_available ? (
-                  <span className="rounded-md border border-gold/35 bg-gold/10 px-2 py-1 text-xs font-semibold text-gold">
-                    Free cut available
-                  </span>
-                ) : null}
-              </div>
-              <div className="mt-5 flex gap-2">
-                {Array.from({ length: paidNeeded }).map((_, index) => (
-                  <span
-                    key={index}
-                    className={`h-2 flex-1 rounded-sm ${
-                      index < progress ? "bg-gold" : "bg-secondary-card"
-                    }`}
-                  />
-                ))}
-              </div>
-            </DarkCard>
+            <LoyaltyProgressCard
+              completed={loyalty?.paid_haircuts_since_last_free ?? 0}
+              freeHaircutsAvailable={loyalty?.free_haircuts_available ?? 0}
+              required={paidNeeded + 1}
+            />
           </div>
 
           <ReferralCard activeCredits={activeCredits} referralCode={profile.referral_code} />
