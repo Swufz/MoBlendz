@@ -3,6 +3,11 @@ export type HardCodedDayAvailability = {
   end: string;
 };
 
+export type HardCodedBreak = {
+  start: string;
+  end: string;
+};
+
 export const hardCodedWeeklyAvailability: Record<number, HardCodedDayAvailability> = {
   0: { start: "10:00", end: "17:30" },
   1: { start: "13:00", end: "17:30" },
@@ -13,7 +18,11 @@ export const hardCodedWeeklyAvailability: Record<number, HardCodedDayAvailabilit
   6: { start: "10:00", end: "17:30" },
 };
 
-export function getHardCodedSlotsForDate(date: string) {
+const hardCodedWeeklyBreaks: Partial<Record<number, HardCodedBreak[]>> = {
+  5: [{ start: "13:00", end: "14:15" }],
+};
+
+export function getHardCodedSlotsForDate(date: string, durationMinutes = 30) {
   const day = buildLocalDateTime(date, "00:00").getDay();
   const availability = hardCodedWeeklyAvailability[day];
 
@@ -30,7 +39,7 @@ export function getHardCodedSlotsForDate(date: string) {
     addMinutesLocal(slot, 30) <= end;
     slot = addMinutesLocal(slot, 30)
   ) {
-    if (slot > now) {
+    if (slot > now && !overlapsHardCodedBreak(slot, durationMinutes)) {
       slots.push(slot);
     }
   }
@@ -38,7 +47,7 @@ export function getHardCodedSlotsForDate(date: string) {
   return slots;
 }
 
-export function isWithinHardCodedAvailability(startsAt: Date) {
+export function isWithinHardCodedAvailability(startsAt: Date, durationMinutes = 30) {
   const availability = hardCodedWeeklyAvailability[startsAt.getDay()];
 
   if (!availability) {
@@ -49,7 +58,11 @@ export function isWithinHardCodedAvailability(startsAt: Date) {
   const dayStart = buildLocalDateTime(date, availability.start);
   const dayEnd = buildLocalDateTime(date, availability.end);
 
-  return startsAt >= dayStart && startsAt < dayEnd;
+  return (
+    startsAt >= dayStart &&
+    startsAt < dayEnd &&
+    !overlapsHardCodedBreak(startsAt, durationMinutes)
+  );
 }
 
 export function getLocalDateBounds(date: string) {
@@ -75,4 +88,17 @@ function formatLocalDate(date: Date) {
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+function overlapsHardCodedBreak(startsAt: Date, durationMinutes: number) {
+  const breaks = hardCodedWeeklyBreaks[startsAt.getDay()] ?? [];
+  const date = formatLocalDate(startsAt);
+  const endsAt = addMinutesLocal(startsAt, durationMinutes);
+
+  return breaks.some((breakTime) => {
+    const breakStart = buildLocalDateTime(date, breakTime.start);
+    const breakEnd = buildLocalDateTime(date, breakTime.end);
+
+    return startsAt < breakEnd && endsAt > breakStart;
+  });
 }

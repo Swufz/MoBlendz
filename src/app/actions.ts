@@ -173,7 +173,7 @@ export async function createBooking(formData: FormData) {
   const startsAt = combineDateAndTime(parsed.data.date, parsed.data.time);
   const duration = getServiceDuration(parsed.data.serviceType, settings);
 
-  if (!isWithinHardCodedAvailability(startsAt)) {
+  if (!isWithinHardCodedAvailability(startsAt, duration)) {
     return { ok: false, message: "That time is outside available business hours." };
   }
 

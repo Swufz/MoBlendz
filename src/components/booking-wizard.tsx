@@ -100,7 +100,8 @@ export function BookingWizard({
   const slots = useMemo(
     () => {
       console.time("generate slots");
-      const generatedSlots = getHardCodedSlotsForDate(date)
+      const serviceDuration = getServiceDuration(serviceType, settings);
+      const generatedSlots = getHardCodedSlotsForDate(date, serviceDuration)
         .filter((slot) =>
           isSlotVisible({
             slot,
