@@ -65,6 +65,14 @@ type CompletedBooking = {
   durationMinutes: number;
 };
 
+type DateOption = {
+  date: string;
+  dayName: string;
+  disabled: boolean;
+  isToday: boolean;
+  monthDay: string;
+};
+
 type BookingActionResult =
   | {
       ok: true;
@@ -567,55 +575,16 @@ export function BookingWizard({
 
         {step === 1 ? (
           <div className="space-y-5">
-            <div>
-              <p className="text-sm font-semibold text-muted">Choose a date</p>
-              <div
-                className="mt-3 flex gap-2 overflow-x-auto pb-2"
-                role="listbox"
-                aria-label="Choose appointment date"
-              >
-                {dateOptions.map((option) => {
-                  const selected = option.date === date;
-                  return (
-                    <button
-                      key={option.date}
-                      type="button"
-                      disabled={option.disabled}
-                      onClick={() => {
-                        if (option.date !== date) {
-                          setDate(option.date);
-                          setTime("");
-                        }
-                      }}
-                      aria-selected={selected}
-                      className={`min-w-[92px] rounded-lg border px-3 py-3 text-left transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold disabled:cursor-not-allowed disabled:opacity-35 ${
-                        selected
-                          ? "border-gold bg-gold text-background"
-                          : "border-line bg-background text-foreground hover:border-gold/60"
-                      }`}
-                    >
-                      <span className="block text-xs font-bold uppercase tracking-[0.12em]">
-                        {option.dayName}
-                      </span>
-                      <span className="mt-1 block text-base font-semibold">
-                        {option.monthDay}
-                      </span>
-                      {option.isToday ? (
-                        <span
-                          className={`mt-2 inline-flex rounded-md px-2 py-0.5 text-[11px] font-bold ${
-                            selected
-                              ? "bg-background/15 text-background"
-                              : "bg-gold/10 text-gold"
-                          }`}
-                        >
-                          Today
-                        </span>
-                      ) : null}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+            <BookingDateSelector
+              dateOptions={dateOptions}
+              selectedDate={date}
+              onSelectDate={(nextDate) => {
+                if (nextDate !== date) {
+                  setDate(nextDate);
+                  setTime("");
+                }
+              }}
+            />
             <div>
               <p className="text-sm font-medium text-muted">Available times</p>
               <div className="mt-2 grid grid-cols-3 gap-2">
@@ -912,6 +881,64 @@ function BookingReview({
   );
 }
 
+function BookingDateSelector({
+  dateOptions,
+  onSelectDate,
+  selectedDate,
+}: {
+  dateOptions: DateOption[];
+  onSelectDate: (date: string) => void;
+  selectedDate: string;
+}) {
+  return (
+    <div>
+      <p className="text-sm font-semibold text-muted">Choose a date</p>
+      <div
+        className="mt-3 flex gap-2 overflow-x-auto pb-2"
+        role="listbox"
+        aria-label="Choose appointment date"
+      >
+        {dateOptions.map((option) => {
+          const selected = option.date === selectedDate;
+
+          return (
+            <button
+              key={option.date}
+              type="button"
+              disabled={option.disabled}
+              onClick={() => onSelectDate(option.date)}
+              aria-selected={selected}
+              className={`min-w-[92px] rounded-lg border px-3 py-3 text-left transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold disabled:cursor-not-allowed disabled:opacity-35 ${
+                selected
+                  ? "border-gold bg-gold text-background"
+                  : "border-line bg-background text-foreground hover:border-gold/60"
+              }`}
+            >
+              <span className="block text-xs font-bold uppercase tracking-[0.12em]">
+                {option.dayName}
+              </span>
+              <span className="mt-1 block text-base font-semibold">
+                {option.monthDay}
+              </span>
+              {option.isToday ? (
+                <span
+                  className={`mt-2 inline-flex rounded-md px-2 py-0.5 text-[11px] font-bold ${
+                    selected
+                      ? "bg-background/15 text-background"
+                      : "bg-gold/10 text-gold"
+                  }`}
+                >
+                  Today
+                </span>
+              ) : null}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function BookingConfirmation({
   booking,
   onRestart,
@@ -973,7 +1000,7 @@ function getStepTitle(step: number) {
   return "Confirm booking";
 }
 
-function buildDateOptions(duration: number) {
+function buildDateOptions(duration: number): DateOption[] {
   const today = getBusinessDate();
 
   return Array.from({ length: 14 }).map((_, index) => {
