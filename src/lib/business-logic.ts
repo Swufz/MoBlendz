@@ -1,13 +1,12 @@
 import {
   addMinutes,
-  format,
   getDay,
   isAfter,
   isBefore,
   parse,
-  set,
 } from "date-fns";
 import { defaultAdminSettings, serviceLabels } from "@/lib/config";
+import { createBookingDateTime } from "@/lib/timezone";
 import type {
   AdminSettings,
   Booking,
@@ -17,6 +16,8 @@ import type {
   ServiceType,
   WeeklyAvailability,
 } from "@/lib/types";
+
+export { formatBookingDate, formatBookingDateTime, formatBookingTime } from "@/lib/timezone";
 
 const dayNames = [
   "sunday",
@@ -126,17 +127,7 @@ export function rangesOverlap(
 }
 
 export function combineDateAndTime(date: string, time: string) {
-  const parsed = parse(date, "yyyy-MM-dd", new Date());
-  const [hours, minutes] = time.split(":").map(Number);
-  return set(parsed, { hours, minutes, seconds: 0, milliseconds: 0 });
-}
-
-export function formatBookingDate(value: string | Date) {
-  return format(value instanceof Date ? value : new Date(value), "EEE, MMM d");
-}
-
-export function formatBookingTime(value: string | Date) {
-  return format(value instanceof Date ? value : new Date(value), "h:mm a");
+  return createBookingDateTime(date, time);
 }
 
 export function calculateCompletionSummary({

@@ -21,6 +21,12 @@ import {
 } from "@/lib/hard-coded-availability";
 import { normalizeReferralCode } from "@/lib/referrals";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import {
+  BUSINESS_TIME_ZONE,
+  createBookingDateTime,
+  formatBookingTimeValue,
+  getBusinessDate,
+} from "@/lib/timezone";
 import type { AdminSettings, BookingStatus, ServiceType } from "@/lib/types";
 
 const services: ServiceType[] = ["haircut", "haircut_beard"];
@@ -83,7 +89,7 @@ export function BookingWizard({
 }) {
   const [step, setStep] = useState(0);
   const [serviceType, setServiceType] = useState<ServiceType>("haircut");
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(() => getBusinessDate());
   const [time, setTime] = useState("");
   const [notes, setNotes] = useState("");
   const [referralCode, setReferralCode] = useState(() =>
@@ -107,8 +113,7 @@ export function BookingWizard({
   const didResumeRef = useRef(false);
 
   const selectedDate = useMemo(() => {
-    const [year, month, day] = date.split("-").map(Number);
-    return new Date(year, month - 1, day);
+    return createBookingDateTime(date, "12:00");
   }, [date]);
   const slots = useMemo(
     () => {
@@ -328,7 +333,7 @@ export function BookingWizard({
 
   function applyDraft(draft: PendingBooking) {
     setServiceType(draft.serviceType);
-    setDate(draft.date || draft.selectedDate || new Date().toISOString().slice(0, 10));
+    setDate(draft.date || draft.selectedDate || getBusinessDate());
     setTime(draft.time || draft.selectedTime || "");
     setNotes(draft.notes ?? "");
     setReferralCode(normalizeReferralCode(draft.referralCode ?? ""));
@@ -398,6 +403,7 @@ export function BookingWizard({
     isCreatingRef.current = true;
     setMessage("");
     debugDraft("selected service/date/time before submit", draftToSubmit);
+    debugBookingTime(draftToSubmit);
 
     const formData = new FormData();
     formData.set("serviceType", draftToSubmit.serviceType);
@@ -550,7 +556,7 @@ export function BookingWizard({
               <span className="text-sm font-medium text-muted">Date</span>
               <input
                 value={date}
-                min={new Date().toISOString().slice(0, 10)}
+                min={getBusinessDate()}
                 onChange={(event) => {
                   setDate(event.target.value);
                   setTime("");
@@ -573,7 +579,7 @@ export function BookingWizard({
                   </div>
                 ) : slots.length ? (
                   slots.map((slot) => {
-                    const value = slot.toTimeString().slice(0, 5);
+                    const value = formatBookingTimeValue(slot);
                     return (
                       <button
                         key={slot.toISOString()}
@@ -1017,14 +1023,7 @@ function buildDraftDateTime(date: string, time: string) {
     return "";
   }
 
-  const [year, month, day] = date.split("-").map(Number);
-  const [hours, minutes] = time.split(":").map(Number);
-
-  if (!year || !month || !day || Number.isNaN(hours) || Number.isNaN(minutes)) {
-    return "";
-  }
-
-  return new Date(year, month - 1, day, hours, minutes, 0, 0).toISOString();
+  return createBookingDateTime(date, time).toISOString();
 }
 
 function debugDraft(label: string, draft: PendingBooking | null) {
@@ -1033,6 +1032,19 @@ function debugDraft(label: string, draft: PendingBooking | null) {
   }
 
   console.log(`[booking draft] ${label}`, draft);
+}
+
+function debugBookingTime(draft: PendingBooking) {
+  if (process.env.NODE_ENV !== "development" || !draft.date || !draft.time) {
+    return;
+  }
+
+  const storedUtcTime = createBookingDateTime(draft.date, draft.time).toISOString();
+  console.log(
+    `[booking time] Selected local time: ${draft.time} ${BUSINESS_TIME_ZONE}`,
+  );
+  console.log(`[booking time] Stored UTC time: ${storedUtcTime}`);
+  console.log(`[booking time] Displayed time: ${formatBookingTime(draft.dateTime || storedUtcTime)}`);
 }
 
 function readCompletedBooking() {

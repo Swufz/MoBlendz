@@ -1,6 +1,11 @@
 import { Resend } from "resend";
 import { serviceLabels } from "@/lib/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import {
+  formatBookingDate,
+  formatBookingDateTime,
+  formatBookingTime,
+} from "@/lib/timezone";
 import type { Booking, Profile } from "@/lib/types";
 
 type BookingEmailArgs = {
@@ -19,7 +24,6 @@ type BookingEmailView = {
   notes: string | null;
 };
 
-const timezone = "America/Los_Angeles";
 const locationLines = ["238 Hayes Street", "Irvine, CA 92620"];
 
 export async function sendBookingConfirmationEmails({
@@ -270,27 +274,6 @@ function renderLocationBlock() {
       <p style="margin:0 0 8px;color:#D6A84F;font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;">Location</p>
       <p style="margin:0;color:#F7F1E5;font-size:16px;line-height:1.55;">238 Hayes Street<br />Irvine, CA 92620</p>
     </div>`;
-}
-
-export function formatBookingDateTime(value: string) {
-  return `${formatBookingDate(value)} at ${formatBookingTime(value)}`;
-}
-
-function formatBookingDate(value: string) {
-  return new Intl.DateTimeFormat("en-US", {
-    timeZone: timezone,
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-  }).format(new Date(value));
-}
-
-function formatBookingTime(value: string) {
-  return new Intl.DateTimeFormat("en-US", {
-    timeZone: timezone,
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(new Date(value));
 }
 
 export function formatServiceName(serviceType: Booking["service_type"]) {

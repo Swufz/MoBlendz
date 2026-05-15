@@ -5,6 +5,7 @@ import { SiteHeader } from "@/components/site-header";
 import { formatBookingDate, formatBookingTime } from "@/lib/business-logic";
 import { serviceLabels } from "@/lib/config";
 import { getSessionProfile, getSupabaseOrNull } from "@/lib/data";
+import { getBusinessDate, getBusinessDateBounds } from "@/lib/timezone";
 import type { Booking } from "@/lib/types";
 
 type AdminDashboardStats = {
@@ -43,11 +44,9 @@ export default async function AdminPage() {
     redirect("/");
   }
 
-  const now = new Date();
-  const startOfToday = new Date(now);
-  startOfToday.setHours(0, 0, 0, 0);
-  const endOfToday = new Date(now);
-  endOfToday.setHours(23, 59, 59, 999);
+  const { start: startOfToday, end: endOfToday } = getBusinessDateBounds(
+    getBusinessDate(),
+  );
 
   console.time("admin dashboard data");
   const [statsResult, todaysBookingsResult] = await Promise.all([
