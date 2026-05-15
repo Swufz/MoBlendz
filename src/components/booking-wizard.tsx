@@ -24,7 +24,8 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { AdminSettings, BookingStatus, ServiceType } from "@/lib/types";
 
 const services: ServiceType[] = ["haircut", "haircut_beard"];
-const pendingBookingKey = "mo-blendz-pending-booking";
+const bookingDraftKey = "moblendz_booking_draft";
+const legacyPendingBookingKey = "mo-blendz-pending-booking";
 const completedBookingKey = "mo-blendz-completed-booking";
 
 type ActiveBooking = {
@@ -40,6 +41,11 @@ type PendingBooking = {
   time: string;
   notes: string;
   referralCode: string;
+  selectedDate?: string;
+  selectedTime?: string;
+  dateTime?: string;
+  discountAmount?: number;
+  finalPrice?: number;
 };
 
 type CompletedBooking = {
@@ -95,6 +101,7 @@ export function BookingWizard({
   const [isCheckingBookingLimit, setIsCheckingBookingLimit] = useState(false);
   const [bookingLimitMessage, setBookingLimitMessage] = useState("");
   const [activeBookings, setActiveBookings] = useState<ActiveBooking[]>([]);
+  const [isDraftStorageReady, setIsDraftStorageReady] = useState(false);
   const [isPending, startTransition] = useTransition();
   const isCreatingRef = useRef(false);
   const didResumeRef = useRef(false);
@@ -127,6 +134,7 @@ export function BookingWizard({
     ? Math.min(Number(settings.referral_discount_amount ?? 5), price)
     : 0;
   const isBookingLimitReached = Boolean(bookingLimitMessage);
+  const cashDue = Math.max(0, price - referralDiscountAmount);
 
   useEffect(() => {
     const savedConfirmation = readCompletedBooking();
@@ -134,27 +142,58 @@ export function BookingWizard({
       // Restore client-only sessionStorage state after hydration.
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setCompletedBooking(savedConfirmation);
+      setIsDraftStorageReady(true);
       return;
     }
+
+    const draft = readPendingBooking();
+    if (draft) {
+      applyDraft(draft);
+      setStep(getStepForDraft(draft));
+      debugDraft("draft restored", draft);
+    }
+
+    setIsDraftStorageReady(true);
 
     if (!shouldResume || didResumeRef.current) {
       return;
     }
 
     didResumeRef.current = true;
-    const draft = readPendingBooking();
     if (!draft) {
       setStep(0);
       setMessage("We could not find your saved booking details. Please restart booking.");
       return;
     }
 
-    applyDraft(draft);
-    setStep(2);
+    if (!isCompleteDraft(draft)) {
+      setStep(getStepForDraft(draft));
+      setMessage("We restored your booking details. Please finish your selection.");
+      return;
+    }
+
     setMessage("Welcome back. Finishing your booking now...");
     submitDraft(draft);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shouldResume]);
+
+  useEffect(() => {
+    if (!isDraftStorageReady || completedBooking) {
+      return;
+    }
+
+    savePendingBooking(currentDraft());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    cashDue,
+    date,
+    isDraftStorageReady,
+    notes,
+    referralCode,
+    referralDiscountAmount,
+    serviceType,
+    time,
+  ]);
 
   useEffect(() => {
     const code = normalizeReferralCode(referralCode);
@@ -204,7 +243,6 @@ export function BookingWizard({
     let isCurrent = true;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsLoadingAvailability(true);
-    setTime("");
 
     async function loadActiveBookings() {
       console.time("fetch bookings");
@@ -290,18 +328,30 @@ export function BookingWizard({
 
   function applyDraft(draft: PendingBooking) {
     setServiceType(draft.serviceType);
-    setDate(draft.date);
-    setTime(draft.time);
-    setNotes(draft.notes);
+    setDate(draft.date || draft.selectedDate || new Date().toISOString().slice(0, 10));
+    setTime(draft.time || draft.selectedTime || "");
+    setNotes(draft.notes ?? "");
     setReferralCode(normalizeReferralCode(draft.referralCode ?? ""));
   }
 
   function currentDraft(): PendingBooking {
-    return { serviceType, date, time, notes, referralCode };
+    return buildPendingBookingDraft({
+      date,
+      discountAmount: referralDiscountAmount,
+      finalPrice: cashDue,
+      notes,
+      referralCode,
+      serviceType,
+      time,
+    });
   }
 
   function savePendingBooking(draft: PendingBooking) {
-    sessionStorage.setItem(pendingBookingKey, JSON.stringify(draft));
+    const serialized = JSON.stringify(draft);
+    sessionStorage.setItem(bookingDraftKey, serialized);
+    sessionStorage.setItem(legacyPendingBookingKey, serialized);
+    localStorage.setItem(bookingDraftKey, serialized);
+    debugDraft("draft saved", draft);
   }
 
   async function handleSignIn(draft: PendingBooking) {
@@ -337,16 +387,26 @@ export function BookingWizard({
       return;
     }
 
+    const draftToSubmit = getBestDraft(draft);
+    if (!isCompleteDraft(draftToSubmit)) {
+      setStep(getStepForDraft(draftToSubmit));
+      setMessage("Please choose a service, date, and time.");
+      debugDraft("submit blocked incomplete draft", draftToSubmit);
+      return;
+    }
+
     isCreatingRef.current = true;
     setMessage("");
+    debugDraft("selected service/date/time before submit", draftToSubmit);
 
     const formData = new FormData();
-    formData.set("serviceType", draft.serviceType);
-    formData.set("date", draft.date);
-    formData.set("time", draft.time);
-    formData.set("notes", draft.notes);
-    formData.set("referralCode", normalizeReferralCode(draft.referralCode));
+    formData.set("serviceType", draftToSubmit.serviceType);
+    formData.set("date", draftToSubmit.date);
+    formData.set("time", draftToSubmit.time);
+    formData.set("notes", draftToSubmit.notes);
+    formData.set("referralCode", normalizeReferralCode(draftToSubmit.referralCode));
     formData.set("phone", phoneNumber);
+    debugDraft("final booking payload", draftToSubmit);
 
     startTransition(async () => {
       const result = (await createBooking(formData)) as BookingActionResult;
@@ -357,7 +417,7 @@ export function BookingWizard({
       }
 
       if (result.ok) {
-        sessionStorage.removeItem(pendingBookingKey);
+        clearPendingBooking();
         sessionStorage.setItem(completedBookingKey, JSON.stringify(result.booking));
         setCompletedBooking(result.booking);
         setMessage("");
@@ -366,12 +426,12 @@ export function BookingWizard({
       }
 
       if (result.authRequired) {
-        await handleSignIn(draft);
+        await handleSignIn(draftToSubmit);
         return;
       }
 
       if (result.phoneRequired) {
-        savePendingBooking(draft);
+        savePendingBooking(draftToSubmit);
         setStep(3);
         setMessage(result.message);
         return;
@@ -382,8 +442,14 @@ export function BookingWizard({
   }
 
   async function handleConfirm() {
-    const draft = currentDraft();
+    const draft = getBestDraft(currentDraft());
     savePendingBooking(draft);
+
+    if (!isCompleteDraft(draft)) {
+      setStep(getStepForDraft(draft));
+      setMessage("Please choose a service, date, and time.");
+      return;
+    }
 
     if (!isLoggedIn) {
       try {
@@ -412,6 +478,7 @@ export function BookingWizard({
         booking={completedBooking}
         onRestart={() => {
           sessionStorage.removeItem(completedBookingKey);
+          clearPendingBooking();
           setCompletedBooking(null);
           setStep(0);
           setMessage("");
@@ -605,12 +672,18 @@ export function BookingWizard({
         ) : step === 3 ? (
           <button
             type="button"
-            onClick={() => submitDraft(currentDraft(), phone)}
+            onClick={() => {
+              const draft = getBestDraft(currentDraft());
+              debugDraft("phone saved during booking", draft);
+              savePendingBooking(draft);
+              setStep(2);
+              setMessage("Phone number added. Review and confirm your booking.");
+            }}
             disabled={isPending || phone.trim().length < 7}
             className="inline-flex h-10 items-center gap-2 rounded-md bg-gold px-4 text-sm font-semibold text-background disabled:opacity-40"
           >
             <Check size={18} />
-            {isPending ? "Saving..." : "Save booking"}
+            {isPending ? "Saving..." : "Continue"}
           </button>
         ) : (
           <button
@@ -633,7 +706,7 @@ export function BookingWizard({
                 : isCheckingBookingLimit
                   ? "Checking..."
                 : isLoggedIn
-                  ? "Confirm"
+                  ? "Confirm booking"
                   : "Sign in with Google to book"}
           </button>
         )}
@@ -833,13 +906,16 @@ function getStepTitle(step: number) {
 
 function readPendingBooking() {
   try {
-    const raw = sessionStorage.getItem(pendingBookingKey);
+    const raw =
+      sessionStorage.getItem(bookingDraftKey) ??
+      sessionStorage.getItem(legacyPendingBookingKey) ??
+      localStorage.getItem(bookingDraftKey);
     if (!raw) {
       return null;
     }
 
-    const parsed = JSON.parse(raw) as PendingBooking;
-    if (!parsed.serviceType || !parsed.date || !parsed.time) {
+    const parsed = normalizePendingBooking(JSON.parse(raw) as Partial<PendingBooking>);
+    if (!parsed.serviceType && !parsed.date && !parsed.time) {
       return null;
     }
 
@@ -847,6 +923,116 @@ function readPendingBooking() {
   } catch {
     return null;
   }
+}
+
+function clearPendingBooking() {
+  sessionStorage.removeItem(bookingDraftKey);
+  sessionStorage.removeItem(legacyPendingBookingKey);
+  localStorage.removeItem(bookingDraftKey);
+}
+
+function getBestDraft(draft: PendingBooking) {
+  if (isCompleteDraft(draft)) {
+    return draft;
+  }
+
+  const storedDraft = readPendingBooking();
+  if (storedDraft && isCompleteDraft(storedDraft)) {
+    return storedDraft;
+  }
+
+  return draft;
+}
+
+function buildPendingBookingDraft({
+  date,
+  discountAmount,
+  finalPrice,
+  notes,
+  referralCode,
+  serviceType,
+  time,
+}: {
+  date: string;
+  discountAmount: number;
+  finalPrice: number;
+  notes: string;
+  referralCode: string;
+  serviceType: ServiceType;
+  time: string;
+}): PendingBooking {
+  return {
+    serviceType,
+    date,
+    selectedDate: date,
+    time,
+    selectedTime: time,
+    dateTime: buildDraftDateTime(date, time),
+    notes,
+    referralCode: normalizeReferralCode(referralCode),
+    discountAmount,
+    finalPrice,
+  };
+}
+
+function normalizePendingBooking(draft: Partial<PendingBooking>): PendingBooking {
+  const serviceType = services.includes(draft.serviceType as ServiceType)
+    ? (draft.serviceType as ServiceType)
+    : "haircut";
+  const date = draft.date ?? draft.selectedDate ?? "";
+  const time = draft.time ?? draft.selectedTime ?? "";
+
+  return {
+    serviceType,
+    date,
+    selectedDate: date,
+    time,
+    selectedTime: time,
+    dateTime: draft.dateTime ?? buildDraftDateTime(date, time),
+    notes: draft.notes ?? "",
+    referralCode: normalizeReferralCode(draft.referralCode ?? ""),
+    discountAmount: Number(draft.discountAmount ?? 0),
+    finalPrice: Number(draft.finalPrice ?? 0),
+  };
+}
+
+function isCompleteDraft(draft: PendingBooking | null) {
+  return Boolean(draft?.serviceType && draft.date && draft.time);
+}
+
+function getStepForDraft(draft: PendingBooking | null) {
+  if (!draft?.serviceType) {
+    return 0;
+  }
+
+  if (!draft.date || !draft.time) {
+    return 1;
+  }
+
+  return 2;
+}
+
+function buildDraftDateTime(date: string, time: string) {
+  if (!date || !time) {
+    return "";
+  }
+
+  const [year, month, day] = date.split("-").map(Number);
+  const [hours, minutes] = time.split(":").map(Number);
+
+  if (!year || !month || !day || Number.isNaN(hours) || Number.isNaN(minutes)) {
+    return "";
+  }
+
+  return new Date(year, month - 1, day, hours, minutes, 0, 0).toISOString();
+}
+
+function debugDraft(label: string, draft: PendingBooking | null) {
+  if (process.env.NODE_ENV !== "development") {
+    return;
+  }
+
+  console.log(`[booking draft] ${label}`, draft);
 }
 
 function readCompletedBooking() {
