@@ -16,8 +16,10 @@ import {
 } from "@/lib/config";
 import {
   addMinutesLocal,
+  getHardCodedSlotCandidatesForDate,
   getHardCodedSlotsForDate,
   getLocalDateBounds,
+  isWithinHardCodedAvailability,
 } from "@/lib/hard-coded-availability";
 import { normalizeReferralCode } from "@/lib/referrals";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -115,31 +117,38 @@ export function BookingWizard({
   const selectedDate = useMemo(() => {
     return createBookingDateTime(date, "12:00");
   }, [date]);
-  const slots = useMemo(
+  const price = getServicePrice(serviceType, settings);
+  const duration = getServiceDuration(serviceType, settings);
+  const dateOptions = useMemo(() => buildDateOptions(duration), [duration]);
+  const slotOptions = useMemo(
     () => {
       console.time("generate slots");
-      const serviceDuration = getServiceDuration(serviceType, settings);
-      const generatedSlots = getHardCodedSlotsForDate(date, serviceDuration)
-        .filter((slot) =>
-          isSlotVisible({
+      const generatedSlots = date
+        ? getHardCodedSlotCandidatesForDate(date).map((slot) => ({
+          slot,
+          available: isSlotAvailable({
             slot,
-            serviceType,
-            settings,
             activeBookings,
+            duration,
           }),
-        );
+        }))
+        : [];
       console.timeEnd("generate slots");
       return generatedSlots;
     },
-    [activeBookings, date, serviceType, settings],
+    [activeBookings, date, duration],
   );
-  const price = getServicePrice(serviceType, settings);
-  const duration = getServiceDuration(serviceType, settings);
   const referralDiscountAmount = isReferralValid
     ? Math.min(Number(settings.referral_discount_amount ?? 5), price)
     : 0;
   const isBookingLimitReached = Boolean(bookingLimitMessage);
   const cashDue = Math.max(0, price - referralDiscountAmount);
+  const selectedTimeIsAvailable = Boolean(
+    time &&
+      slotOptions.some(
+        ({ available, slot }) => available && formatBookingTimeValue(slot) === time,
+      ),
+  );
 
   useEffect(() => {
     const savedConfirmation = readCompletedBooking();
@@ -296,6 +305,12 @@ export function BookingWizard({
       isCurrent = false;
     };
   }, [date]);
+
+  useEffect(() => {
+    if (time && slotOptions.length && !selectedTimeIsAvailable) {
+      setTime("");
+    }
+  }, [selectedTimeIsAvailable, slotOptions, time]);
 
   useEffect(() => {
     if (step !== 2 || !isLoggedIn) {
@@ -552,23 +567,63 @@ export function BookingWizard({
 
         {step === 1 ? (
           <div className="space-y-5">
-            <label className="block">
-              <span className="text-sm font-medium text-muted">Date</span>
-              <input
-                value={date}
-                min={getBusinessDate()}
-                onChange={(event) => {
-                  setDate(event.target.value);
-                  setTime("");
-                }}
-                type="date"
-                className="mt-2 h-10 w-full rounded-md border border-line bg-background px-3 text-foreground"
-              />
-            </label>
+            <div>
+              <p className="text-sm font-semibold text-muted">Choose a date</p>
+              <div
+                className="mt-3 flex gap-2 overflow-x-auto pb-2"
+                role="listbox"
+                aria-label="Choose appointment date"
+              >
+                {dateOptions.map((option) => {
+                  const selected = option.date === date;
+                  return (
+                    <button
+                      key={option.date}
+                      type="button"
+                      disabled={option.disabled}
+                      onClick={() => {
+                        if (option.date !== date) {
+                          setDate(option.date);
+                          setTime("");
+                        }
+                      }}
+                      aria-selected={selected}
+                      className={`min-w-[92px] rounded-lg border px-3 py-3 text-left transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold disabled:cursor-not-allowed disabled:opacity-35 ${
+                        selected
+                          ? "border-gold bg-gold text-background"
+                          : "border-line bg-background text-foreground hover:border-gold/60"
+                      }`}
+                    >
+                      <span className="block text-xs font-bold uppercase tracking-[0.12em]">
+                        {option.dayName}
+                      </span>
+                      <span className="mt-1 block text-base font-semibold">
+                        {option.monthDay}
+                      </span>
+                      {option.isToday ? (
+                        <span
+                          className={`mt-2 inline-flex rounded-md px-2 py-0.5 text-[11px] font-bold ${
+                            selected
+                              ? "bg-background/15 text-background"
+                              : "bg-gold/10 text-gold"
+                          }`}
+                        >
+                          Today
+                        </span>
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
             <div>
               <p className="text-sm font-medium text-muted">Available times</p>
               <div className="mt-2 grid grid-cols-3 gap-2">
-                {isLoadingAvailability ? (
+                {!date ? (
+                  <p className="col-span-3 rounded-md bg-background p-4 text-sm text-muted">
+                    Choose a date to see available times.
+                  </p>
+                ) : isLoadingAvailability ? (
                   <div className="col-span-3 grid grid-cols-3 gap-2">
                     {Array.from({ length: 6 }).map((_, index) => (
                       <div
@@ -577,18 +632,26 @@ export function BookingWizard({
                       />
                     ))}
                   </div>
-                ) : slots.length ? (
-                  slots.map((slot) => {
+                ) : slotOptions.length ? (
+                  slotOptions.map(({ available, slot }) => {
                     const value = formatBookingTimeValue(slot);
+                    const selected = time === value;
                     return (
                       <button
                         key={slot.toISOString()}
                         type="button"
-                        onClick={() => setTime(value)}
-                        className={`h-10 rounded-md text-sm font-semibold ${
-                          time === value
+                        disabled={!available}
+                        onClick={() => {
+                          if (available) {
+                            setTime(value);
+                          }
+                        }}
+                        className={`h-10 rounded-md text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold disabled:cursor-not-allowed ${
+                          selected
                             ? "bg-gold text-background"
-                            : "border border-line bg-secondary-card text-foreground hover:border-gold/50"
+                            : available
+                              ? "border border-line bg-secondary-card text-foreground hover:border-gold/50"
+                              : "border border-line bg-background/60 text-muted/55 line-through opacity-60"
                         }`}
                       >
                         {formatBookingTime(slot)}
@@ -597,7 +660,7 @@ export function BookingWizard({
                   })
                 ) : (
                   <p className="col-span-3 rounded-md bg-background p-4 text-sm text-muted">
-                    No times available for that day.
+                    No times available for this day.
                   </p>
                 )}
               </div>
@@ -669,7 +732,7 @@ export function BookingWizard({
           <button
             type="button"
             onClick={() => setStep((value) => value + 1)}
-            disabled={step === 1 && !time}
+            disabled={step === 1 && !selectedTimeIsAvailable}
             className="inline-flex h-10 items-center gap-2 rounded-md bg-gold px-4 text-sm font-semibold text-background disabled:opacity-40"
           >
             Next
@@ -910,6 +973,37 @@ function getStepTitle(step: number) {
   return "Confirm booking";
 }
 
+function buildDateOptions(duration: number) {
+  const today = getBusinessDate();
+
+  return Array.from({ length: 14 }).map((_, index) => {
+    const date = addIsoDateDays(today, index);
+    const displayDate = createBookingDateTime(date, "12:00");
+    const hasSlots = getHardCodedSlotsForDate(date, duration).length > 0;
+
+    return {
+      date,
+      dayName: new Intl.DateTimeFormat("en-US", {
+        timeZone: BUSINESS_TIME_ZONE,
+        weekday: "short",
+      }).format(displayDate),
+      disabled: !hasSlots,
+      isToday: index === 0,
+      monthDay: new Intl.DateTimeFormat("en-US", {
+        timeZone: BUSINESS_TIME_ZONE,
+        month: "short",
+        day: "numeric",
+      }).format(displayDate),
+    };
+  });
+}
+
+function addIsoDateDays(value: string, days: number) {
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day + days));
+  return date.toISOString().slice(0, 10);
+}
+
 function readPendingBooking() {
   try {
     const raw =
@@ -1060,18 +1154,22 @@ function readCompletedBooking() {
   }
 }
 
-function isSlotVisible({
+function isSlotAvailable({
   activeBookings,
-  serviceType,
-  settings,
+  duration,
   slot,
 }: {
   activeBookings: ActiveBooking[];
-  serviceType: ServiceType;
-  settings: AdminSettings;
+  duration: number;
   slot: Date;
 }) {
-  const duration = getServiceDuration(serviceType, settings);
+  if (slot <= new Date()) {
+    return false;
+  }
+
+  if (!isWithinHardCodedAvailability(slot, duration)) {
+    return false;
+  }
 
   const overlapsBooking = activeBookings.some((booking) =>
     slot < addMinutesLocal(new Date(booking.date_time), booking.duration_minutes) &&

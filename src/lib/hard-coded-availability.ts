@@ -30,6 +30,13 @@ const hardCodedWeeklyBreaks: Partial<Record<number, HardCodedBreak[]>> = {
 };
 
 export function getHardCodedSlotsForDate(date: string, durationMinutes = 30) {
+  const now = new Date();
+  return getHardCodedSlotCandidatesForDate(date).filter((slot) =>
+    slot > now && isWithinHardCodedAvailability(slot, durationMinutes),
+  );
+}
+
+export function getHardCodedSlotCandidatesForDate(date: string) {
   const day = getBusinessDayOfWeek(createBookingDateTime(date, "00:00"));
   const availability = hardCodedWeeklyAvailability[day];
 
@@ -37,7 +44,6 @@ export function getHardCodedSlotsForDate(date: string, durationMinutes = 30) {
     return [];
   }
 
-  const now = new Date();
   const end = buildLocalDateTime(date, availability.end);
   const slots: Date[] = [];
 
@@ -46,9 +52,7 @@ export function getHardCodedSlotsForDate(date: string, durationMinutes = 30) {
     addMinutesLocal(slot, 30) <= end;
     slot = addMinutesLocal(slot, 30)
   ) {
-    if (slot > now && !overlapsHardCodedBreak(slot, durationMinutes)) {
-      slots.push(slot);
-    }
+    slots.push(slot);
   }
 
   return slots;

@@ -31,7 +31,7 @@ export const defaultAdminSettings: AdminSettings = {
   haircut_beard_price: 35,
   loyalty_required_haircuts: 5,
   referral_discount_amount: 5,
-  haircut_duration_minutes: 30,
+  haircut_duration_minutes: 45,
   haircut_beard_duration_minutes: 45,
   cancellation_window_hours: 4,
   allow_customer_cancellation: true,

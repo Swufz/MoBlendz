@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { serviceLabels } from "@/lib/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
@@ -10,8 +11,11 @@ import type { Booking, Profile } from "@/lib/types";
 
 type BookingEmailArgs = {
   booking: Booking;
-  profile: Profile;
+  profile: BookingEmailProfile;
+  supabase?: SupabaseClient;
 };
+
+type BookingEmailProfile = Pick<Profile, "full_name" | "email" | "phone">;
 
 type BookingEmailView = {
   service: string;
@@ -29,6 +33,7 @@ const locationLines = ["238 Hayes Street", "Irvine, CA 92620"];
 export async function sendBookingConfirmationEmails({
   booking,
   profile,
+  supabase: argsSupabase,
 }: BookingEmailArgs) {
   if (process.env.EMAIL_ENABLED !== "true") {
     console.log("Email disabled. Skipping booking emails.");
@@ -45,7 +50,7 @@ export async function sendBookingConfirmationEmails({
   }
 
   const resend = new Resend(apiKey);
-  const supabase = await createSupabaseServerClient();
+  const supabase = argsSupabase ?? (await createSupabaseServerClient());
   const { data: currentBooking, error } = await supabase
     .from("bookings")
     .select("id, customer_email_sent_at, admin_email_sent_at")
@@ -110,6 +115,99 @@ export async function sendBookingConfirmationEmails({
   }
 }
 
+export async function sendBookingReminderEmails({
+  booking,
+  profile,
+  supabase: argsSupabase,
+}: BookingEmailArgs) {
+  if (process.env.EMAIL_ENABLED !== "true") {
+    console.log("Email disabled. Skipping booking emails.");
+    return;
+  }
+
+  const apiKey = process.env.RESEND_API_KEY;
+  const from = process.env.EMAIL_FROM;
+  const adminEmail = process.env.ADMIN_EMAIL;
+
+  if (!apiKey || !from) {
+    console.warn("Booking reminder emails skipped: RESEND_API_KEY or EMAIL_FROM is missing.");
+    return;
+  }
+
+  const resend = new Resend(apiKey);
+  const supabase = argsSupabase ?? (await createSupabaseServerClient());
+  const { data: currentBooking, error } = await supabase
+    .from("bookings")
+    .select("id, customer_reminder_email_sent_at, admin_reminder_email_sent_at")
+    .eq("id", booking.id)
+    .maybeSingle<
+      Pick<
+        Booking,
+        "id" | "customer_reminder_email_sent_at" | "admin_reminder_email_sent_at"
+      >
+    >();
+
+  if (error) {
+    console.warn(
+      "Booking reminder emails skipped: could not check reminder status.",
+      error.message,
+    );
+    return;
+  }
+
+  const emailView = createBookingEmailView(booking);
+
+  if (profile.email && !currentBooking?.customer_reminder_email_sent_at) {
+    try {
+      const { error: sendError } = await resend.emails.send({
+        from,
+        to: profile.email,
+        subject: "Reminder: Your MoBlendz appointment is tomorrow",
+        html: renderCustomerReminderEmail(emailView),
+        text: renderCustomerReminderText(emailView),
+      });
+
+      if (sendError) {
+        throw sendError;
+      }
+
+      await supabase
+        .from("bookings")
+        .update({ customer_reminder_email_sent_at: new Date().toISOString() })
+        .eq("id", booking.id)
+        .is("customer_reminder_email_sent_at", null);
+    } catch (sendError) {
+      console.error("Customer booking reminder email failed.", sendError);
+    }
+  }
+
+  if (adminEmail && !currentBooking?.admin_reminder_email_sent_at) {
+    try {
+      const { error: sendError } = await resend.emails.send({
+        from,
+        to: adminEmail,
+        subject: "Reminder: Upcoming MoBlendz appointment tomorrow",
+        html: renderAdminReminderEmail(emailView, profile),
+        text: renderAdminReminderText(emailView, profile),
+      });
+
+      if (sendError) {
+        throw sendError;
+      }
+
+      await supabase
+        .from("bookings")
+        .update({ admin_reminder_email_sent_at: new Date().toISOString() })
+        .eq("id", booking.id)
+        .is("admin_reminder_email_sent_at", null);
+    } catch (sendError) {
+      console.error("Admin booking reminder email failed.", sendError);
+    }
+  } else if (!adminEmail) {
+    console.warn("Admin booking reminder email skipped: ADMIN_EMAIL is missing.");
+  }
+}
+
 export function renderCustomerBookingEmail(emailView: BookingEmailView) {
   return renderShell(`
     <p style="${badgeStyle}">MoBlendz booking</p>
@@ -133,7 +231,7 @@ export function renderCustomerBookingEmail(emailView: BookingEmailView) {
 
 export function renderAdminBookingEmail(
   emailView: BookingEmailView,
-  profile: Profile,
+  profile: BookingEmailProfile,
 ) {
   return renderShell(`
     <p style="${badgeStyle}">Admin notification</p>
@@ -147,6 +245,43 @@ export function renderAdminBookingEmail(
       ...(emailView.referralDiscount
         ? [["Referral discount", `-${emailView.referralDiscount}`] as [string, string]]
         : []),
+      ["Cash due", `$${emailView.cashDue}`],
+      ["Status", emailView.status],
+      ...(emailView.notes ? [["Notes", emailView.notes] as [string, string]] : []),
+    ])}
+    ${renderLocationBlock()}
+  `);
+}
+
+export function renderCustomerReminderEmail(emailView: BookingEmailView) {
+  return renderShell(`
+    <p style="${badgeStyle}">MoBlendz reminder</p>
+    <h1 style="${headingStyle}">Appointment reminder</h1>
+    <p style="${bodyStyle}">This is a reminder that your MoBlendz appointment is tomorrow.</p>
+    ${renderDetailsCard([
+      ["Service", emailView.service],
+      ["Date", emailView.date],
+      ["Time", emailView.time],
+      ["Cash due", `$${emailView.cashDue}`],
+    ])}
+    ${renderLocationBlock()}
+    <p style="${smallTextStyle}">Please arrive at your scheduled appointment time. Pay cash when you arrive.</p>
+  `);
+}
+
+export function renderAdminReminderEmail(
+  emailView: BookingEmailView,
+  profile: BookingEmailProfile,
+) {
+  return renderShell(`
+    <p style="${badgeStyle}">Admin reminder</p>
+    <h1 style="${headingStyle}">Upcoming appointment tomorrow.</h1>
+    ${renderDetailsCard([
+      ["Customer", profile.full_name],
+      ["Email", profile.email],
+      ["Phone", profile.phone ?? "No phone"],
+      ["Service", emailView.service],
+      ["Date/Time", emailView.dateTime],
       ["Cash due", `$${emailView.cashDue}`],
       ["Status", emailView.status],
       ...(emailView.notes ? [["Notes", emailView.notes] as [string, string]] : []),
@@ -180,7 +315,10 @@ function renderCustomerBookingText(emailView: BookingEmailView) {
   ].join("\n");
 }
 
-function renderAdminBookingText(emailView: BookingEmailView, profile: Profile) {
+function renderAdminBookingText(
+  emailView: BookingEmailView,
+  profile: BookingEmailProfile,
+) {
   return [
     "New booking received.",
     "",
@@ -192,6 +330,48 @@ function renderAdminBookingText(emailView: BookingEmailView, profile: Profile) {
     ...(emailView.referralDiscount
       ? [`Referral discount: -${emailView.referralDiscount}`]
       : []),
+    `Cash due: $${emailView.cashDue}`,
+    `Status: ${emailView.status}`,
+    ...(emailView.notes ? [`Notes: ${emailView.notes}`] : []),
+    "",
+    "Location:",
+    ...locationLines,
+  ].join("\n");
+}
+
+function renderCustomerReminderText(emailView: BookingEmailView) {
+  return [
+    "Reminder: Your MoBlendz appointment is tomorrow.",
+    "",
+    "Appointment reminder",
+    "This is a reminder that your MoBlendz appointment is tomorrow.",
+    "",
+    `Service: ${emailView.service}`,
+    `Date: ${emailView.date}`,
+    `Time: ${emailView.time}`,
+    `Cash due: $${emailView.cashDue}`,
+    "",
+    "Location:",
+    ...locationLines,
+    "",
+    "Please arrive at your scheduled appointment time. Pay cash when you arrive.",
+    "",
+    "MoBlendz - Private cuts by appointment.",
+  ].join("\n");
+}
+
+function renderAdminReminderText(
+  emailView: BookingEmailView,
+  profile: BookingEmailProfile,
+) {
+  return [
+    "Reminder: Upcoming MoBlendz appointment tomorrow.",
+    "",
+    `Customer: ${profile.full_name}`,
+    `Email: ${profile.email}`,
+    `Phone: ${profile.phone ?? "No phone"}`,
+    `Service: ${emailView.service}`,
+    `Date/Time: ${emailView.dateTime}`,
     `Cash due: $${emailView.cashDue}`,
     `Status: ${emailView.status}`,
     ...(emailView.notes ? [`Notes: ${emailView.notes}`] : []),

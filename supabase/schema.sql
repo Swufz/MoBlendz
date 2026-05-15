@@ -28,7 +28,7 @@ create table admin_settings (
   haircut_beard_price numeric(10,2) not null default 35,
   loyalty_required_haircuts integer not null default 5,
   referral_discount_amount numeric(10,2) not null default 5,
-  haircut_duration_minutes integer not null default 30,
+  haircut_duration_minutes integer not null default 45,
   haircut_beard_duration_minutes integer not null default 45,
   cancellation_window_hours integer not null default 4,
   allow_customer_cancellation boolean not null default true,
@@ -55,13 +55,15 @@ create table bookings (
   discount_type discount_type not null default 'none',
   discount_amount numeric(10,2) not null default 0,
   date_time timestamptz not null,
-  duration_minutes integer not null default 30,
+  duration_minutes integer not null default 45,
   status booking_status not null default 'pending',
   notes text,
   cancelled_at timestamptz,
   completed_at timestamptz,
   customer_email_sent_at timestamptz,
   admin_email_sent_at timestamptz,
+  customer_reminder_email_sent_at timestamptz,
+  admin_reminder_email_sent_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -71,6 +73,12 @@ add column if not exists customer_email_sent_at timestamptz;
 
 alter table public.bookings
 add column if not exists admin_email_sent_at timestamptz;
+
+alter table public.bookings
+add column if not exists customer_reminder_email_sent_at timestamptz;
+
+alter table public.bookings
+add column if not exists admin_reminder_email_sent_at timestamptz;
 
 create index bookings_date_time_idx on bookings(date_time);
 create index bookings_status_idx on bookings(status);
@@ -526,3 +534,12 @@ for delete using (
 );
 
 insert into admin_settings default values;
+
+alter table public.admin_settings
+alter column haircut_duration_minutes set default 45;
+
+alter table public.bookings
+alter column duration_minutes set default 45;
+
+update public.admin_settings
+set haircut_duration_minutes = 45;

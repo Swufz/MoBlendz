@@ -45,6 +45,8 @@ export type Booking = {
   completed_at: string | null;
   customer_email_sent_at?: string | null;
   admin_email_sent_at?: string | null;
+  customer_reminder_email_sent_at?: string | null;
+  admin_reminder_email_sent_at?: string | null;
   created_at: string;
   updated_at: string;
   profiles?: Pick<Profile, "full_name" | "email" | "phone" | "avatar_url">;

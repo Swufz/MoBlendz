@@ -17,6 +17,7 @@ Tailwind CSS, and Supabase.
 - Admin completion confirmation summary before saving a haircut
 - Loyalty and referral credit business logic
 - Resend email confirmations for new bookings
+- Resend 24-hour appointment reminder emails via Vercel Cron
 - Supabase RLS policies
 
 ## Local Setup
@@ -74,6 +75,8 @@ RESEND_API_KEY=your-resend-api-key
 EMAIL_FROM=MoBlendz <onboarding@resend.dev>
 ADMIN_EMAIL=your-email@example.com
 EMAIL_ENABLED=true
+CRON_SECRET=choose-a-long-random-secret
+SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
 ```
 
 For local testing, `onboarding@resend.dev` works with Resend's test sender.
@@ -88,6 +91,18 @@ EMAIL_FROM=MoBlendz <booking@moblendz.co>
 
 If `EMAIL_ENABLED` is not `true`, the app logs `Email disabled. Skipping booking
 emails.` and still creates bookings normally.
+
+The reminder cron runs hourly on Vercel at `/api/cron/booking-reminders` and
+sends reminders for bookings 23-25 hours away. Add `CRON_SECRET` in Vercel and
+test manually with:
+
+```bash
+curl -H "Authorization: Bearer YOUR_CRON_SECRET" \
+  http://localhost:3000/api/cron/booking-reminders
+```
+
+`SUPABASE_SERVICE_ROLE_KEY` is server-only and lets the cron read upcoming
+bookings under RLS. Never expose it in client code.
 
 ## Admin User
 

@@ -20,6 +20,7 @@ import {
 import { sendBookingConfirmationEmails } from "@/lib/email/send-booking-email";
 import { baseReferralCodeFromName, normalizeReferralCode } from "@/lib/referrals";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createBookingDateTime, getBusinessDate } from "@/lib/timezone";
 import type { Booking, DiscountCredit, Loyalty, Profile } from "@/lib/types";
 
 const activeBookingLimitMessage =
@@ -180,9 +181,18 @@ export async function createBooking(formData: FormData) {
   const settings = await getAdminSettings();
   const startsAt = combineDateAndTime(parsed.data.date, parsed.data.time);
   const duration = getServiceDuration(parsed.data.serviceType, settings);
+  const rangeStart = createBookingDateTime(getBusinessDate(), "00:00");
+  const rangeEnd = createBookingDateTime(addIsoDateDays(getBusinessDate(), 14), "00:00");
+
+  if (startsAt < rangeStart || startsAt >= rangeEnd) {
+    return { ok: false, message: "Choose a date within the next 14 days." };
+  }
 
   if (!isWithinHardCodedAvailability(startsAt, duration)) {
-    return { ok: false, message: "That time is outside available business hours." };
+    return {
+      ok: false,
+      message: "That time is no longer available. Please choose another time.",
+    };
   }
 
   const { start: dayStart, end: dayEnd } = getLocalDateBounds(parsed.data.date);
@@ -204,7 +214,10 @@ export async function createBooking(formData: FormData) {
   );
 
   if (hasConflict) {
-    return { ok: false, message: "That time is unavailable. Pick another slot." };
+    return {
+      ok: false,
+      message: "That time is no longer available. Please choose another time.",
+    };
   }
 
   const basePrice = getServicePrice(parsed.data.serviceType, settings);
@@ -942,6 +955,12 @@ function normalizeUsPhone(value: string) {
   }
 
   return null;
+}
+
+function addIsoDateDays(value: string, days: number) {
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day + days));
+  return date.toISOString().slice(0, 10);
 }
 
 async function rewardFirstCompletedReferral(userId: string, amount: number) {
