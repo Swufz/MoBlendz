@@ -3,17 +3,55 @@ export function LoyaltyProgressCard({
   completed,
   freeHaircutsAvailable = 0,
   required = 5,
+  variant = "personal",
 }: {
   className?: string;
   completed: number;
   freeHaircutsAvailable?: number;
   required?: number;
+  variant?: "personal" | "promo";
 }) {
   const paidNeeded = Math.max(1, required - 1);
   const clamped = Math.min(completed, paidNeeded);
   const progressPercent = freeHaircutsAvailable
     ? 100
     : Math.round((clamped / paidNeeded) * 100);
+
+  if (variant === "promo") {
+    return (
+      <section
+        className={`rounded-lg border border-gold/30 bg-surface/95 p-5 shadow-[0_18px_50px_rgba(0,0,0,0.34)] backdrop-blur ${className}`}
+      >
+        <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-muted">
+          LOYALTY REWARD
+        </p>
+        <div className="mt-3 flex items-center gap-2 text-sm font-extrabold uppercase text-foreground">
+          <span>{paidNeeded} PAID CUTS</span>
+          <span className="text-gold">-&gt;</span>
+          <span className="rounded-md bg-gold px-2 py-1 text-background">
+            {formatOrdinal(required)} CUT FREE
+          </span>
+        </div>
+        <div
+          className="mt-4 grid items-center gap-1.5"
+          style={{ gridTemplateColumns: `repeat(${paidNeeded}, minmax(0, 1fr)) auto` }}
+        >
+          {Array.from({ length: paidNeeded }).map((_, index) => (
+            <span
+              key={index}
+              className="h-2 rounded-full border border-line bg-secondary-card"
+            />
+          ))}
+          <span className="rounded-md border border-gold/45 bg-gold/10 px-2 py-1 text-[11px] font-extrabold uppercase text-gold">
+            Free
+          </span>
+        </div>
+        <p className="mt-3 text-sm leading-6 text-muted">
+          Your progress starts after your first paid visit.
+        </p>
+      </section>
+    );
+  }
 
   return (
     <section
@@ -22,7 +60,7 @@ export function LoyaltyProgressCard({
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-xl font-extrabold uppercase tracking-normal text-foreground">
-            FREE CUT PROGRESS
+            YOUR FREE CUT PROGRESS
           </h2>
         </div>
         <div className="text-right">
@@ -51,6 +89,18 @@ export function LoyaltyProgressCard({
       </p>
     </section>
   );
+}
+
+function formatOrdinal(value: number) {
+  const suffix = value % 10 === 1 && value % 100 !== 11
+    ? "ST"
+    : value % 10 === 2 && value % 100 !== 12
+      ? "ND"
+      : value % 10 === 3 && value % 100 !== 13
+        ? "RD"
+        : "TH";
+
+  return `${value}${suffix}`;
 }
 
 export function LoyaltyTracker({

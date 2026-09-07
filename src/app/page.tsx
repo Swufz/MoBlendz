@@ -119,8 +119,9 @@ function LoggedOutHome({
 
               <LoyaltyProgressCard
                 className="absolute bottom-4 left-4 right-4 sm:left-auto sm:w-72"
-                completed={2}
+                completed={0}
                 required={paidNeeded + 1}
+                variant="promo"
               />
             </div>
           </div>
