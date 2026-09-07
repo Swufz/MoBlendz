@@ -1,6 +1,6 @@
 import { BookingWizard } from "@/components/booking-wizard";
 import { SiteHeader } from "@/components/site-header";
-import { getAdminSettings, getSessionProfile } from "@/lib/data";
+import { getAdminSettings, getSessionProfile, getWeeklyAvailability } from "@/lib/data";
 
 export default async function BookingPage({
   searchParams,
@@ -8,9 +8,10 @@ export default async function BookingPage({
   searchParams: Promise<{ resume?: string; ref?: string }>;
 }) {
   const { resume, ref } = await searchParams;
-  const [{ profile }, settings] = await Promise.all([
+  const [{ profile }, settings, weeklyAvailability] = await Promise.all([
     getSessionProfile(),
     getAdminSettings(),
+    getWeeklyAvailability(),
   ]);
 
   return (
@@ -31,6 +32,7 @@ export default async function BookingPage({
           initialReferralCode={ref ?? ""}
           settings={settings}
           shouldResume={resume === "1"}
+          weeklyAvailability={weeklyAvailability}
         />
       </main>
     </>

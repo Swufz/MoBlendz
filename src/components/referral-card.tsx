@@ -17,6 +17,7 @@ export function ReferralCard({
   const link = useMemo(() => buildReferralLink(code, origin), [code, origin]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setOrigin(window.location.origin);
   }, []);
 

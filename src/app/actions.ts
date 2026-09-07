@@ -15,13 +15,13 @@ import { getServiceDuration, getServicePrice } from "@/lib/config";
 import { getAdminSettings } from "@/lib/data";
 import {
   getLocalDateBounds,
-  isWithinHardCodedAvailability,
+  isWithinAvailability,
 } from "@/lib/hard-coded-availability";
 import { sendBookingConfirmationEmails } from "@/lib/email/send-booking-email";
 import { baseReferralCodeFromName, normalizeReferralCode } from "@/lib/referrals";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createBookingDateTime, getBusinessDate } from "@/lib/timezone";
-import type { Booking, DiscountCredit, Loyalty, Profile } from "@/lib/types";
+import type { BlockedTime, Booking, DiscountCredit, Loyalty, Profile, WeeklyAvailability } from "@/lib/types";
 
 const activeBookingLimitMessage =
   "You already have 2 upcoming appointments. Please complete or cancel one before booking another.";
@@ -188,14 +188,41 @@ export async function createBooking(formData: FormData) {
     return { ok: false, message: "Choose a date within the next 14 days." };
   }
 
-  if (!isWithinHardCodedAvailability(startsAt, duration)) {
+  const { start: dayStart, end: dayEnd } = getLocalDateBounds(parsed.data.date);
+  const [weeklyResult, blockedResult] = await Promise.all([
+    supabase
+      .from("weekly_availability")
+      .select("day_of_week, is_available, start_time, end_time, break_start, break_end")
+      .returns<
+        Pick<
+          WeeklyAvailability,
+          "day_of_week" | "is_available" | "start_time" | "end_time" | "break_start" | "break_end"
+        >[]
+      >(),
+    supabase
+      .from("blocked_times")
+      .select("id, date, start_time, end_time, all_day, reason, starts_at, ends_at, created_at, updated_at")
+      .or(
+        `date.eq.${parsed.data.date},and(starts_at.lt.${dayEnd.toISOString()},ends_at.gt.${dayStart.toISOString()})`,
+      )
+      .returns<BlockedTime[]>(),
+  ]);
+
+  if (weeklyResult.error) {
+    return { ok: false, message: weeklyResult.error.message };
+  }
+
+  if (blockedResult.error) {
+    return { ok: false, message: blockedResult.error.message };
+  }
+
+  if (!isWithinAvailability(startsAt, duration, weeklyResult.data ?? undefined, blockedResult.data ?? [])) {
     return {
       ok: false,
       message: "That time is no longer available. Please choose another time.",
     };
   }
 
-  const { start: dayStart, end: dayEnd } = getLocalDateBounds(parsed.data.date);
   const { data: possibleConflicts } = await supabase
     .from("bookings")
     .select("id,date_time,duration_minutes,status")

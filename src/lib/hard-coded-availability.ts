@@ -4,6 +4,7 @@ import {
   getBusinessDate,
   getBusinessDayOfWeek,
 } from "@/lib/timezone";
+import type { BlockedTime, WeeklyAvailability } from "@/lib/types";
 
 export type HardCodedDayAvailability = {
   start: string;
@@ -30,17 +31,43 @@ const hardCodedWeeklyBreaks: Partial<Record<number, HardCodedBreak[]>> = {
 };
 
 export function getHardCodedSlotsForDate(date: string, durationMinutes = 30) {
-  const now = new Date();
-  return getHardCodedSlotCandidatesForDate(date).filter((slot) =>
-    slot > now && isWithinHardCodedAvailability(slot, durationMinutes),
-  );
+  return getSlotsForDate(date, durationMinutes);
 }
 
 export function getHardCodedSlotCandidatesForDate(date: string) {
-  const day = getBusinessDayOfWeek(createBookingDateTime(date, "00:00"));
-  const availability = hardCodedWeeklyAvailability[day];
+  return getSlotCandidatesForDate(date);
+}
 
-  if (!availability) {
+export function isWithinHardCodedAvailability(startsAt: Date, durationMinutes = 30) {
+  return isWithinAvailability(startsAt, durationMinutes);
+}
+
+export function getSlotsForDate(
+  date: string,
+  durationMinutes = 30,
+  weeklyAvailability?: Pick<
+    WeeklyAvailability,
+    "day_of_week" | "is_available" | "start_time" | "end_time" | "break_start" | "break_end"
+  >[],
+  blockedTimes: BlockedTime[] = [],
+) {
+  const now = new Date();
+  return getSlotCandidatesForDate(date, weeklyAvailability).filter((slot) =>
+    slot > now && isWithinAvailability(slot, durationMinutes, weeklyAvailability, blockedTimes),
+  );
+}
+
+export function getSlotCandidatesForDate(
+  date: string,
+  weeklyAvailability?: Pick<
+    WeeklyAvailability,
+    "day_of_week" | "is_available" | "start_time" | "end_time" | "break_start" | "break_end"
+  >[],
+) {
+  const day = getBusinessDayOfWeek(createBookingDateTime(date, "00:00"));
+  const availability = getDayAvailability(day, weeklyAvailability);
+
+  if (!availability?.isAvailable) {
     return [];
   }
 
@@ -58,10 +85,21 @@ export function getHardCodedSlotCandidatesForDate(date: string) {
   return slots;
 }
 
-export function isWithinHardCodedAvailability(startsAt: Date, durationMinutes = 30) {
-  const availability = hardCodedWeeklyAvailability[getBusinessDayOfWeek(startsAt)];
+export function isWithinAvailability(
+  startsAt: Date,
+  durationMinutes = 30,
+  weeklyAvailability?: Pick<
+    WeeklyAvailability,
+    "day_of_week" | "is_available" | "start_time" | "end_time" | "break_start" | "break_end"
+  >[],
+  blockedTimes: BlockedTime[] = [],
+) {
+  const availability = getDayAvailability(
+    getBusinessDayOfWeek(startsAt),
+    weeklyAvailability,
+  );
 
-  if (!availability) {
+  if (!availability?.isAvailable) {
     return false;
   }
 
@@ -72,7 +110,8 @@ export function isWithinHardCodedAvailability(startsAt: Date, durationMinutes = 
   return (
     startsAt >= dayStart &&
     addMinutesLocal(startsAt, durationMinutes) <= dayEnd &&
-    !overlapsHardCodedBreak(startsAt, durationMinutes)
+    !overlapsBreak(startsAt, durationMinutes, availability.breaks) &&
+    !overlapsBlockedTime(startsAt, durationMinutes, blockedTimes)
   );
 }
 
@@ -88,8 +127,11 @@ export function addMinutesLocal(date: Date, minutes: number) {
   return new Date(date.getTime() + minutes * 60_000);
 }
 
-function overlapsHardCodedBreak(startsAt: Date, durationMinutes: number) {
-  const breaks = hardCodedWeeklyBreaks[getBusinessDayOfWeek(startsAt)] ?? [];
+function overlapsBreak(
+  startsAt: Date,
+  durationMinutes: number,
+  breaks: HardCodedBreak[],
+) {
   const date = getBusinessDate(startsAt);
   const endsAt = addMinutesLocal(startsAt, durationMinutes);
 
@@ -98,5 +140,64 @@ function overlapsHardCodedBreak(startsAt: Date, durationMinutes: number) {
     const breakEnd = buildLocalDateTime(date, breakTime.end);
 
     return startsAt < breakEnd && endsAt > breakStart;
+  });
+}
+
+function getDayAvailability(
+  day: number,
+  weeklyAvailability?: Pick<
+    WeeklyAvailability,
+    "day_of_week" | "is_available" | "start_time" | "end_time" | "break_start" | "break_end"
+  >[],
+) {
+  const weeklyDay = weeklyAvailability?.find((item) => item.day_of_week === day);
+  if (weeklyDay) {
+    return {
+      isAvailable: weeklyDay.is_available,
+      start: weeklyDay.start_time,
+      end: weeklyDay.end_time,
+      breaks:
+        weeklyDay.break_start && weeklyDay.break_end
+          ? [{ start: weeklyDay.break_start, end: weeklyDay.break_end }]
+          : [],
+    };
+  }
+
+  const hardCodedDay = hardCodedWeeklyAvailability[day];
+  return hardCodedDay
+    ? {
+        isAvailable: true,
+        start: hardCodedDay.start,
+        end: hardCodedDay.end,
+        breaks: hardCodedWeeklyBreaks[day] ?? [],
+      }
+    : null;
+}
+
+function overlapsBlockedTime(
+  startsAt: Date,
+  durationMinutes: number,
+  blockedTimes: BlockedTime[],
+) {
+  const date = getBusinessDate(startsAt);
+  const endsAt = addMinutesLocal(startsAt, durationMinutes);
+
+  return blockedTimes.some((block) => {
+    if (block.all_day && block.date === date) {
+      return true;
+    }
+
+    const blockStart = block.date && block.start_time
+      ? buildLocalDateTime(block.date, block.start_time)
+      : block.starts_at
+        ? new Date(block.starts_at)
+        : null;
+    const blockEnd = block.date && block.end_time
+      ? buildLocalDateTime(block.date, block.end_time)
+      : block.ends_at
+        ? new Date(block.ends_at)
+        : null;
+
+    return Boolean(blockStart && blockEnd && startsAt < blockEnd && endsAt > blockStart);
   });
 }

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { ArrowLeft, ArrowRight, Check, Scissors } from "lucide-react";
 import {
   createBooking,
+  getBookingDayAvailability,
   getMyActiveUpcomingBookingLimitStatus,
   validateReferralCode,
 } from "@/app/actions";
@@ -16,10 +17,9 @@ import {
 } from "@/lib/config";
 import {
   addMinutesLocal,
-  getHardCodedSlotCandidatesForDate,
-  getHardCodedSlotsForDate,
-  getLocalDateBounds,
-  isWithinHardCodedAvailability,
+  getSlotCandidatesForDate,
+  getSlotsForDate,
+  isWithinAvailability,
 } from "@/lib/hard-coded-availability";
 import { normalizeReferralCode } from "@/lib/referrals";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -29,7 +29,7 @@ import {
   formatBookingTimeValue,
   getBusinessDate,
 } from "@/lib/timezone";
-import type { AdminSettings, BookingStatus, ServiceType } from "@/lib/types";
+import type { AdminSettings, BlockedTime, BookingStatus, ServiceType, WeeklyAvailability } from "@/lib/types";
 
 const services: ServiceType[] = ["haircut", "haircut_beard"];
 const bookingDraftKey = "moblendz_booking_draft";
@@ -40,7 +40,7 @@ type ActiveBooking = {
   id: string;
   date_time: string;
   duration_minutes: number;
-  status: Extract<BookingStatus, "pending" | "confirmed">;
+  status: BookingStatus;
 };
 
 type PendingBooking = {
@@ -91,11 +91,13 @@ export function BookingWizard({
   shouldResume = false,
   initialIsLoggedIn = false,
   initialReferralCode = "",
+  weeklyAvailability,
 }: {
   settings?: AdminSettings;
   shouldResume?: boolean;
   initialIsLoggedIn?: boolean;
   initialReferralCode?: string;
+  weeklyAvailability?: WeeklyAvailability[];
 }) {
   const [step, setStep] = useState(0);
   const [serviceType, setServiceType] = useState<ServiceType>("haircut");
@@ -117,6 +119,7 @@ export function BookingWizard({
   const [isCheckingBookingLimit, setIsCheckingBookingLimit] = useState(false);
   const [bookingLimitMessage, setBookingLimitMessage] = useState("");
   const [activeBookings, setActiveBookings] = useState<ActiveBooking[]>([]);
+  const [blockedTimes, setBlockedTimes] = useState<BlockedTime[]>([]);
   const [isDraftStorageReady, setIsDraftStorageReady] = useState(false);
   const [isPending, startTransition] = useTransition();
   const isCreatingRef = useRef(false);
@@ -127,24 +130,29 @@ export function BookingWizard({
   }, [date]);
   const price = getServicePrice(serviceType, settings);
   const duration = getServiceDuration(serviceType, settings);
-  const dateOptions = useMemo(() => buildDateOptions(duration), [duration]);
+  const dateOptions = useMemo(
+    () => buildDateOptions(duration, weeklyAvailability),
+    [duration, weeklyAvailability],
+  );
   const slotOptions = useMemo(
     () => {
       console.time("generate slots");
       const generatedSlots = date
-        ? getHardCodedSlotCandidatesForDate(date).map((slot) => ({
+        ? getSlotCandidatesForDate(date, weeklyAvailability).map((slot) => ({
           slot,
           available: isSlotAvailable({
             slot,
             activeBookings,
+            blockedTimes,
             duration,
+            weeklyAvailability,
           }),
         }))
         : [];
       console.timeEnd("generate slots");
       return generatedSlots;
     },
-    [activeBookings, date, duration],
+    [activeBookings, blockedTimes, date, duration, weeklyAvailability],
   );
   const referralDiscountAmount = isReferralValid
     ? Math.min(Number(settings.referral_discount_amount ?? 5), price)
@@ -220,6 +228,7 @@ export function BookingWizard({
   useEffect(() => {
     const code = normalizeReferralCode(referralCode);
     if (!code) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setReferralMessage("");
       setIsReferralValid(false);
       return;
@@ -267,29 +276,21 @@ export function BookingWizard({
     setIsLoadingAvailability(true);
 
     async function loadActiveBookings() {
-      console.time("fetch bookings");
-      const { start, end } = getLocalDateBounds(date);
-      const supabase = createSupabaseBrowserClient();
-      const { data, error } = await supabase
-        .from("bookings")
-        .select("id,date_time,duration_minutes,status")
-        .in("status", ["pending", "confirmed"])
-        .gte("date_time", start.toISOString())
-        .lt("date_time", end.toISOString())
-        .returns<ActiveBooking[]>();
-      console.timeEnd("fetch bookings");
+      const result = await getBookingDayAvailability(date);
 
       if (!isCurrent) {
         return;
       }
 
-      if (error) {
-        console.warn("Could not load booking conflicts.", error.message);
+      if (!result.ok) {
+        console.warn("Could not load booking conflicts.", result.message);
         setActiveBookings([]);
+        setBlockedTimes([]);
         return;
       }
 
-      setActiveBookings(data ?? []);
+      setActiveBookings(result.activeBookings ?? []);
+      setBlockedTimes(result.blockedTimes ?? []);
     }
 
     loadActiveBookings()
@@ -302,6 +303,7 @@ export function BookingWizard({
           error instanceof Error ? error.message : "Could not load booking conflicts.",
         );
         setActiveBookings([]);
+        setBlockedTimes([]);
       })
       .finally(() => {
         if (isCurrent) {
@@ -316,12 +318,14 @@ export function BookingWizard({
 
   useEffect(() => {
     if (time && slotOptions.length && !selectedTimeIsAvailable) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setTime("");
     }
   }, [selectedTimeIsAvailable, slotOptions, time]);
 
   useEffect(() => {
     if (step !== 2 || !isLoggedIn) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setBookingLimitMessage("");
       setIsCheckingBookingLimit(false);
       return;
@@ -907,7 +911,6 @@ function BookingDateSelector({
               type="button"
               disabled={option.disabled}
               onClick={() => onSelectDate(option.date)}
-              aria-selected={selected}
               className={`min-w-[92px] rounded-lg border px-3 py-3 text-left transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold disabled:cursor-not-allowed disabled:opacity-35 ${
                 selected
                   ? "border-gold bg-gold text-background"
@@ -1000,13 +1003,16 @@ function getStepTitle(step: number) {
   return "Confirm booking";
 }
 
-function buildDateOptions(duration: number): DateOption[] {
+function buildDateOptions(
+  duration: number,
+  weeklyAvailability?: WeeklyAvailability[],
+): DateOption[] {
   const today = getBusinessDate();
 
   return Array.from({ length: 14 }).map((_, index) => {
     const date = addIsoDateDays(today, index);
     const displayDate = createBookingDateTime(date, "12:00");
-    const hasSlots = getHardCodedSlotsForDate(date, duration).length > 0;
+    const hasSlots = getSlotsForDate(date, duration, weeklyAvailability).length > 0;
 
     return {
       date,
@@ -1183,18 +1189,22 @@ function readCompletedBooking() {
 
 function isSlotAvailable({
   activeBookings,
+  blockedTimes,
   duration,
   slot,
+  weeklyAvailability,
 }: {
   activeBookings: ActiveBooking[];
+  blockedTimes: BlockedTime[];
   duration: number;
   slot: Date;
+  weeklyAvailability?: WeeklyAvailability[];
 }) {
   if (slot <= new Date()) {
     return false;
   }
 
-  if (!isWithinHardCodedAvailability(slot, duration)) {
+  if (!isWithinAvailability(slot, duration, weeklyAvailability, blockedTimes)) {
     return false;
   }
 
