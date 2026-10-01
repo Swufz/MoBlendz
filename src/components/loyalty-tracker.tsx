@@ -1,3 +1,5 @@
+import { Crown, Scissors } from "lucide-react";
+
 export function LoyaltyProgressCard({
   className = "",
   completed,
@@ -57,10 +59,12 @@ export function LoyaltyProgressCard({
     <section
       className={`rounded-lg border border-line bg-surface p-5 shadow-[0_18px_50px_rgba(0,0,0,0.28)] ${className}`}
     >
-      <div className="flex items-start justify-between gap-4">
+      <div className="loyalty-heading flex items-start justify-between gap-4">
+        <span className="account-icon loyalty-icon" aria-hidden="true"><Scissors size={25} strokeWidth={1.5} /></span>
         <div>
-          <h2 className="text-xl font-extrabold uppercase tracking-normal text-foreground">
-            YOUR FREE CUT PROGRESS
+          <p className="loyalty-label">Loyalty rewards</p>
+          <h2 className="loyalty-title text-xl font-semibold text-foreground">
+            {freeHaircutsAvailable ? "Your free cut is ready." : `Your ${formatOrdinal(required).toLowerCase()} cut is on us.`}
           </h2>
         </div>
         <div className="text-right">
@@ -76,7 +80,9 @@ export function LoyaltyProgressCard({
         </div>
       </div>
 
-      <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-secondary-card">
+      <div className="loyalty-decoration" aria-hidden="true"><Crown size={38} strokeWidth={1} /></div>
+      <p className="loyalty-visits">{freeHaircutsAvailable ? `${freeHaircutsAvailable} free ${freeHaircutsAvailable === 1 ? "haircut" : "haircuts"} available` : `${clamped} of ${paidNeeded} paid visits`}</p>
+      <div className="loyalty-progress mt-4 h-2.5 overflow-hidden rounded-full bg-secondary-card" role="progressbar" aria-label="Paid visits toward your free haircut" aria-valuemin={0} aria-valuemax={paidNeeded} aria-valuenow={freeHaircutsAvailable ? paidNeeded : clamped}>
         <div
           className="h-full rounded-full bg-gold shadow-[0_0_18px_rgba(214,168,79,0.42)]"
           style={{ width: `${progressPercent}%` }}
@@ -84,8 +90,7 @@ export function LoyaltyProgressCard({
       </div>
 
       <p className="mt-3 text-sm leading-6 text-muted">
-        Your 5th cut is <span className="font-bold text-foreground">FREE</span>{" "}
-        after 4 paid visits.
+        {freeHaircutsAvailable ? "Book your next appointment to enjoy your free haircut." : `Complete ${paidNeeded - clamped} more paid ${paidNeeded - clamped === 1 ? "visit" : "visits"} to unlock your free haircut.`}
       </p>
     </section>
   );

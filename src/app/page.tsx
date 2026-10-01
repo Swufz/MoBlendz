@@ -2,11 +2,11 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowRight,
-  BadgeDollarSign,
   CalendarCheck,
   Scissors,
   Sparkles,
   UserRound,
+  UsersRound,
 } from "lucide-react";
 import { LoyaltyProgressCard } from "@/components/loyalty-tracker";
 import { DarkCard, GoldButton } from "@/components/luxury-ui";
@@ -210,38 +210,32 @@ function CustomerHome({
   paidNeeded: number;
   profile: Profile;
 }) {
-  const firstName = profile.full_name.split(" ")[0] || "there";
+  const firstName = profile.full_name.trim().split(/\s+/)[0] || "there";
 
   return (
     <>
       <SiteHeader profile={profile} />
-      <main className="mx-auto grid w-full max-w-7xl gap-5 px-4 pb-28 pt-8 lg:grid-cols-[1.05fr_0.95fr] lg:pb-16">
-        <section className="space-y-5">
-          <DarkCard className="p-6 sm:p-8">
-            <p className="text-sm font-semibold text-muted">
-              MoBlendz dashboard
-            </p>
-            <h1 className="mt-2 text-3xl font-semibold sm:text-4xl">
-              Welcome back, {firstName}.
-            </h1>
-            <p className="mt-3 text-lg text-muted">Ready for your next cut?</p>
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-              <Link href="/book">
-                <GoldButton className="w-full sm:w-auto">Book Appointment</GoldButton>
-              </Link>
-              <Link
-                href="/bookings"
-                className="inline-flex h-10 items-center justify-center rounded-md border border-line px-4 text-sm font-semibold text-foreground"
-              >
-                My Bookings
-              </Link>
+      <main className="account-home">
+        <div className="account-content">
+          <section className="account-hero" aria-labelledby="account-welcome">
+            <div className="account-wordmark" aria-hidden="true">MoBlendz</div>
+            <div className="account-portrait">
+              <Image src="/images/landing-hero.png" alt="MoBlendz haircut in left-facing profile" fill preload sizes="(min-width: 1024px) 480px, (min-width: 640px) 45vw, 280px" className="object-contain object-bottom -scale-x-100" />
             </div>
-          </DarkCard>
+            <div className="account-welcome">
+              <p className="account-label">Your account</p>
+              <h1 id="account-welcome">Welcome back,<br />{firstName}.</h1>
+              <p className="account-subtitle">Ready for your next cut?</p>
+              <div className="account-hero-actions">
+                <Link href="/book" className="account-button account-button-gold">Book Appointment <ArrowRight size={19} /></Link>
+                <Link href="/bookings" className="account-button">My Bookings</Link>
+              </div>
+            </div>
+            <p className="account-signature" aria-hidden="true">Premium cuts<br />Clean looks<br />Bigger confidence</p>
+          </section>
 
-        </section>
-
-        <section className="space-y-5">
-          <div id="loyalty">
+          <section className="account-rewards" aria-label="Your rewards and referrals">
+          <div id="loyalty" className="account-loyalty">
             <LoyaltyProgressCard
               completed={loyalty?.paid_haircuts_since_last_free ?? 0}
               freeHaircutsAvailable={loyalty?.free_haircuts_available ?? 0}
@@ -249,15 +243,18 @@ function CustomerHome({
             />
           </div>
 
-          <ReferralCard activeCredits={activeCredits} referralCode={profile.referral_code} />
+          <ReferralCard activeCredits={activeCredits} referralCode={profile.referral_code} dashboard />
+          </section>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <QuickAction href="/book" label="Book Appointment" icon={<CalendarCheck />} />
-            <QuickAction href="/profile" label="Edit Profile" icon={<UserRound />} />
-            <QuickAction href="/bookings" label="My Bookings" icon={<Scissors />} />
-            <QuickAction href="/profile#referral" label="Refer a Friend" icon={<BadgeDollarSign />} />
-          </div>
-        </section>
+          <section className="account-shortcuts" aria-labelledby="account-shortcuts-title">
+            <div className="account-divider"><h2 id="account-shortcuts-title">Account</h2><span /></div>
+            <div className="account-shortcut-grid">
+              <QuickAction href="/profile" label="Edit Profile" description="Update your information" icon={<UserRound />} />
+              <QuickAction href="/bookings" label="My Bookings" description="View and manage appointments" icon={<CalendarCheck />} />
+              <QuickAction href="#referral" label="Refer a Friend" description="Share MoBlendz with your friends" icon={<UsersRound />} />
+            </div>
+          </section>
+        </div>
       </main>
     </>
   );
@@ -361,17 +358,18 @@ function QuickAction({
   href,
   icon,
   label,
+  description,
 }: {
   href: string;
   icon: React.ReactNode;
   label: string;
+  description: string;
 }) {
   return (
-    <Link href={href} className="flex items-center gap-3 rounded-lg border border-line bg-surface p-3 font-semibold transition hover:border-gold/60">
-      <span className="text-gold">
-        {icon}
-      </span>
-      {label}
+    <Link href={href} className="account-shortcut">
+      <span className="account-icon">{icon}</span>
+      <span><span className="block text-sm font-semibold">{label}</span><span className="mt-1 block text-xs text-muted">{description}</span></span>
+      <ArrowRight size={16} className="ml-auto shrink-0 text-foreground/75" />
     </Link>
   );
 }

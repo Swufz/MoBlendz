@@ -174,3 +174,100 @@ textarea {
 .shadow-\[0_20px_70px_rgba\(214\2c 168\2c 79\2c 0\.12\)\] {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18) !important;
 }
+
+/* Customer home: the supplied forest-green and champagne account reference. */
+.account-home {
+  flex: 1;
+  min-height: 100svh;
+  isolation: isolate;
+  background: radial-gradient(ellipse at 10% 5%, #34483d 0, transparent 38%), radial-gradient(ellipse at 75% 25%, #233e31 0, transparent 44%), #0b1713;
+}
+.account-content { max-width: 1360px; margin: auto; padding: 100px 36px 36px; }
+.account-hero { position: relative; min-height: 350px; isolation: isolate; }
+.account-welcome { position: relative; z-index: 2; padding-top: 35px; padding-bottom: 38px; width: 54%; }
+.account-label, .loyalty-label, .account-referral > p:first-of-type { color: #d4b974; text-transform: uppercase; font-size: 10px; font-weight: 600; letter-spacing: .19em; }
+.account-welcome h1 { margin-top: 10px; font-size: clamp(56px, 5.7vw, 82px); font-weight: 600; line-height: .9; letter-spacing: -.025em; overflow-wrap: anywhere; }
+.account-subtitle { margin-top: 18px; font-size: 20px; color: #b4bdb5; }
+.account-hero-actions { display: flex; gap: 18px; margin-top: 24px; }
+.account-button { display: inline-flex; min-height: 54px; justify-content: center; align-items: center; gap: 22px; padding: 12px 30px; border: 1px solid #526053; border-radius: 10px; font-size: 14px; font-weight: 600; transition: background .2s; }
+.account-button:hover { background: #ffffff0d; }
+.account-button-gold { background: linear-gradient(120deg, #e1c98b, #bda163); border-color: #cbb277; color: #10170f; }
+.account-button-gold:hover { background: #e1c98b; }
+.account-wordmark { position: absolute; z-index: -1; right: -12px; top: 55px; font-family: var(--font-outfit), sans-serif; font-size: clamp(95px, 12vw, 175px); font-weight: 800; letter-spacing: -.035em; color: #d0d8c40b; white-space: nowrap; user-select: none; }
+.account-portrait { position: absolute; z-index: 1; right: 13%; bottom: 0; height: 390px; width: 375px; mask-image: linear-gradient(to bottom, #000 80%, transparent); }
+.account-signature { position: absolute; right: 0; bottom: 80px; border-left: 1px solid #c4a967; padding-left: 20px; font-size: 9px; line-height: 2; letter-spacing: .22em; text-transform: uppercase; color: #869989; }
+.account-rewards { position: relative; z-index: 3; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.account-loyalty > section, .account-referral { position: relative; height: 100%; min-height: 288px; padding: 24px 30px; border: 1px solid #b1b8a735; border-radius: 12px !important; background: linear-gradient(115deg, #263a2c40, #07100d90); box-shadow: none; overflow: hidden; }
+.account-icon { display: inline-flex; width: 48px; height: 48px; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 50%; color: #d6b873; background: #a9b78712; }
+.loyalty-icon, .referral-icon { width: 58px; height: 58px; border: 1px solid #b8c29335; }
+.loyalty-icon { display: none; }
+.account-loyalty .loyalty-icon { display: inline-flex; }
+.loyalty-label { display: none; }
+.account-loyalty .loyalty-label { display: block; margin: 12px 0 10px; }
+.account-loyalty .loyalty-heading { justify-content: start; gap: 20px; }
+.account-loyalty .loyalty-heading > div:last-child { position: absolute; right: 30px; top: 173px; font-size: 13px; }
+.account-loyalty .loyalty-title { font-size: clamp(29px, 2.8vw, 40px); line-height: 1.05; }
+.loyalty-decoration, .loyalty-visits { display: none; }
+.account-loyalty .loyalty-decoration { position: absolute; right: 36px; top: 40px; z-index: -1; display: grid; place-items: center; width: 100px; height: 130px; border: 1px solid #ba9f5140; border-top: 1px solid #ba9f5140; border-radius: 8px; color: #cbb06e65; transform: rotate(12deg); }
+.account-loyalty .loyalty-visits { display: block; margin-top: 52px; font-size: 14px; }
+.account-loyalty .loyalty-progress { margin-top: 10px; margin-right: 48px; background: #c4d3b71a; }
+.account-loyalty .loyalty-progress > div { background: linear-gradient(90deg, #ba9e60, #d6bf87); box-shadow: none; }
+.account-loyalty section > p:last-child { margin-top: 22px; font-size: 13px; }
+.account-referral .referral-icon { float: left; margin-right: 22px; }
+.account-referral > p:first-of-type { margin-top: 4px; }
+.account-referral h2 { margin-top: 8px; font-size: 40px; line-height: 1; }
+.account-referral > p:nth-of-type(2) { clear: both; position: relative; margin-top: 20px; max-width: 80%; font-size: 13px; line-height: 1.5; }
+.referral-decoration { position: absolute; right: 24px; top: 24px; display: flex; align-items: center; justify-content: center; gap: 10px; width: 95px; height: 72px; border: 1px solid #c5ad6655; border-radius: 8px; transform: rotate(20deg); color: #b89d60; background: #21322680; }
+.referral-decoration span { font-size: 12px; }
+.referral-balance { display: grid; grid-template-columns: 1.2fr 1fr; margin-top: 15px; padding: 13px 20px; border: 1px solid #b1b8a725; border-radius: 8px; background: #040b084d; }
+.referral-balance > div { background: none; padding: 0; border: 0; }
+.referral-balance > div + div { border-left: 1px solid #bca86a50; border-radius: 0; padding-left: 24px; }
+.referral-balance p:first-child { font-size: 11px; font-weight: 400; }
+.referral-balance p:last-child { margin-top: 4px; font-size: 27px; line-height: 1; overflow-wrap: anywhere; }
+.referral-actions { margin-top: 12px; grid-template-columns: 1.3fr 1fr; }
+.referral-actions button { height: 44px; border-radius: 8px; font-size: 13px; }
+.referral-actions button:last-child { grid-column: 1; grid-row: 1; background: linear-gradient(120deg, #dfc789, #bfa366); }
+.referral-actions button:first-child { grid-column: 2; background: #ffffff03; }
+.account-referral button:disabled { opacity: .5; cursor: not-allowed; }
+.account-divider { display: flex; align-items: center; gap: 12px; margin: 23px 0 16px; }
+.account-divider h2 { font-family: var(--font-inter), sans-serif; color: #a0afa2; font-size: 10px; text-transform: uppercase; letter-spacing: .2em; }
+.account-divider span { flex: 1; height: 1px; background: #b1b8a730; }
+.account-shortcut-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.account-shortcut { display: flex; align-items: center; gap: 20px; padding: 14px 16px; border: 1px solid #b1b8a730; border-radius: 10px; background: #07100d45; transition: background .2s, border-color .2s; }
+.account-shortcut:hover { background: #27392b60; border-color: #c6ad6b80; }
+.account-home a:focus-visible, .account-home button:focus-visible { outline: 2px solid #dec58a; outline-offset: 4px; }
+@media (min-width: 1600px) { .account-content { padding-top: 112px; } .account-hero { min-height: 350px; } }
+@media (max-width: 1023px) {
+  .account-content { padding: 95px 24px 110px; }
+  .account-welcome { width: 60%; }
+  .account-portrait { right: 0; width: 35%; height: 350px; }
+  .account-signature { display: none; }
+  .account-rewards { gap: 16px; }
+  .account-loyalty > section, .account-referral { padding: 22px; }
+  .account-loyalty .loyalty-heading { gap: 12px; }
+  .account-referral .referral-icon { margin-right: 12px; }
+  .account-referral h2 { font-size: 32px; }
+  .referral-decoration { display: none; }
+  .account-referral > p:nth-of-type(2) { max-width: 100%; }
+  .account-shortcut-grid { gap: 12px; }
+  .account-shortcut { gap: 12px; }
+}
+@media (max-width: 700px) {
+  .account-content { padding: 90px 20px 110px; }
+  .account-hero { padding-top: 215px; }
+  .account-portrait { top: -16px; bottom: auto; right: 3%; width: 220px; height: 270px; }
+  .account-wordmark { top: 60px; left: 0; right: auto; font-size: clamp(70px, 18vw, 120px); }
+  .account-welcome { width: 100%; padding-top: 0; padding-bottom: 30px; }
+  .account-welcome h1 { font-size: clamp(48px, 12vw, 72px); }
+  .account-subtitle { font-size: 17px; }
+  .account-hero-actions { gap: 10px; }
+  .account-button { min-height: 50px; padding: 10px 16px; gap: 10px; font-size: 12px; }
+  .account-rewards, .account-shortcut-grid { grid-template-columns: 1fr; }
+  .account-loyalty .loyalty-title { font-size: 34px; }
+  .account-loyalty > section { min-height: 265px; }
+  .account-loyalty .loyalty-visits { margin-top: 42px; }
+  .account-loyalty .loyalty-heading > div:last-child { top: 158px; right: 22px; }
+  .account-referral h2 { font-size: 36px; }
+  .account-shortcut { padding: 14px 18px; }
+}
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .account-home * { transition: none; } }

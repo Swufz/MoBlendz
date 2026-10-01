@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-01T00:00:00Z",
+  "title": "Design System: MoBlendz Customer Home",
+  "extensions": {
+    "shadows": [
+      { "name": "glass-navigation", "value": "0 16px 44px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.2)", "purpose": "Floating navigation only; reward cards remain shadowless." }
+    ],
+    "motion": [
+      { "name": "account-state", "value": ".2s", "purpose": "Surface and border hover transitions; disabled for reduced motion." },
+      { "name": "glass-ease", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Existing glass navigation control transitions." }
+    ],
+    "breakpoints": [
+      { "name": "account-mobile", "value": "700px" },
+      { "name": "account-tablet", "value": "1023px" },
+      { "name": "account-wide", "value": "1600px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Booking Action",
+      "kind": "button",
+      "refersTo": "booking-action",
+      "description": "Customer homepage primary booking link.",
+      "html": "<a class=\"account-book\" href=\"/book\">Book Appointment</a>",
+      "css": ".account-book{display:inline-flex;align-items:center;justify-content:center;min-height:54px;padding:12px 30px;border:1px solid #cbb277;border-radius:10px;background:linear-gradient(120deg,#e1c98b,#bda163);color:#10170f;font-family:var(--font-inter),sans-serif;font-size:14px;font-weight:600;text-decoration:none;transition:background .2s}.account-book:hover{background:#e1c98b}.account-book:focus-visible{outline:2px solid #dec58a;outline-offset:4px}@media(prefers-reduced-motion:reduce){.account-book{transition:none}}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Forest green and champagne account homepage",
+    "overview": "Scoped to the signed-in customer homepage: a calm, premium account surface grounded in the user's reference and existing assets. Public, booking, and admin surfaces retain their own composition.",
+    "keyCharacteristics": ["Centered glass navigation", "Serif welcome with mirrored existing portrait", "Translucent rewards and clear account shortcuts"],
+    "rules": [],
+    "dos": ["Do preserve the existing portrait and real rewards data.", "Do retain visible focus and reduced motion support."],
+    "donts": ["Don't impose this homepage composition on public or admin routes."]
+  }
+}

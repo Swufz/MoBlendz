@@ -15,7 +15,7 @@ const navItems = [
 
 const customerNavItems = [
   { href: "/", label: "Home", icon: Home },
-  { href: "/book", label: "Book", icon: CalendarDays },
+  { href: "/book", label: "Book", icon: Scissors },
   { href: "/bookings", label: "My Bookings", icon: CalendarDays },
   { href: "/profile", label: "Profile", icon: UserRound },
 ];
@@ -73,6 +73,7 @@ export function SiteHeader({ profile }: { profile?: Profile | null }) {
         className={`${pathname === "/" ? "fixed" : "sticky"} inset-x-0 top-0 z-40 pointer-events-none px-3 pt-3 sm:px-5`}
       >
         <div className="liquid-glass-shell pointer-events-auto mx-auto flex min-h-14 w-fit max-w-full items-center gap-1 rounded-full p-1.5">
+          {isCustomer ? <Link href="/" className="px-4 text-xl font-bold text-foreground" style={{ fontFamily: "var(--font-outfit)" }}>MoBlendz</Link> : null}
           <button
             type="button"
             aria-label="Open menu"
@@ -206,16 +207,19 @@ function NavigationLink({
   href: string;
   onClick?: () => void;
 }) {
+  const pathname = usePathname();
+  const isActive = !href.includes("#") && pathname === href.split("?")[0];
+  const activeClassName = `${className} ${isActive ? "bg-white/10 text-foreground" : ""}`;
   if (href === "/" || href.startsWith("/#")) {
     return (
-      <a href={href} className={className} onClick={onClick}>
+      <a href={href} className={activeClassName} aria-current={isActive ? "page" : undefined} onClick={onClick}>
         {children}
       </a>
     );
   }
 
   return (
-    <Link href={href} className={className} onClick={onClick}>
+    <Link href={href} className={activeClassName} aria-current={isActive ? "page" : undefined} onClick={onClick}>
       {children}
     </Link>
   );
