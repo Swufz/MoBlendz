@@ -7,7 +7,7 @@ import { ProfileEditForm } from "@/components/profile-edit-form";
 import { ReferralCard } from "@/components/referral-card";
 import { SiteHeader } from "@/components/site-header";
 import { formatBookingDate, formatBookingTime } from "@/lib/business-logic";
-import { serviceLabels } from "@/lib/config";
+import { formatServiceLabel, hasScalpNeckMassageAddon } from "@/lib/config";
 import {
   getAdminSettings,
   getMyBookings,
@@ -109,7 +109,12 @@ export default async function ProfilePage() {
                 <article key={booking.id} className="rounded-lg bg-surface p-5 ring-1 ring-line">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="font-semibold">{serviceLabels[booking.service_type]}</p>
+                      <p className="font-semibold">
+                        {formatServiceLabel(
+                          booking.service_type,
+                          hasScalpNeckMassageAddon(booking.notes),
+                        )}
+                      </p>
                       <p className="mt-1 text-sm text-muted">
                         {formatBookingDate(booking.date_time)} at {formatBookingTime(booking.date_time)}
                       </p>

@@ -8,7 +8,7 @@ Tailwind CSS, and Supabase.
 - Google login with Supabase Auth
 - Automatic customer profile creation
 - Minimal slide-style booking flow
-- Haircut and haircut + beard service pricing
+- Haircut, haircut + beard, and $15 scalp/neck massage add-on pricing
 - Appointment durations: 30 and 45 minutes by default
 - Business hours support through admin settings
 - Booking conflict prevention for pending/confirmed appointments

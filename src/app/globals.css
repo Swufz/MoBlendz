@@ -1,15 +1,15 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0f0f0f;
-  --foreground: #f3efe7;
-  --muted: #aaa39a;
-  --gold: #c89b45;
-  --blue: #171717;
-  --blue-strong: #d2aa5b;
-  --surface: #171717;
-  --line: rgba(255, 255, 255, 0.11);
-  --secondary-card: #202020;
+  --background: #0b0e0b;
+  --foreground: #f1eee5;
+  --muted: #a8aa9f;
+  --gold: #b8a36d;
+  --blue: #20271f;
+  --blue-strong: #d1bd83;
+  --surface: #131813;
+  --line: rgba(233, 227, 211, 0.14);
+  --secondary-card: #1a201a;
   --danger: #c74c3c;
   --success: #4fa66a;
 }
@@ -28,9 +28,8 @@
   --color-success: var(--success);
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
     BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-heading: var(--font-outfit), var(--font-inter), ui-sans-serif, system-ui,
-    sans-serif;
-  --font-brand: var(--font-allura), cursive;
+  --font-heading: var(--font-cormorant), Georgia, serif;
+  --font-brand: var(--font-cormorant), Georgia, serif;
   --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
 }
 
@@ -41,18 +40,26 @@ body {
     BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 h1,
 h2,
 h3,
 h4,
 h5,
 h6 {
-  font-family: var(--font-outfit), var(--font-inter), ui-sans-serif, system-ui,
-    sans-serif;
+  font-family: var(--font-cormorant), Georgia, serif;
+}
+
+.font-heading {
+  font-family: var(--font-cormorant), Georgia, serif;
 }
 
 .font-brand {
-  font-family: var(--font-allura), cursive;
+  font-family: var(--font-cormorant), Georgia, serif;
+  font-weight: 600;
   letter-spacing: 0;
 }
 
@@ -66,7 +73,84 @@ textarea {
 
 ::selection {
   background: var(--gold);
-  color: var(--foreground);
+  color: var(--background);
+}
+
+.liquid-glass-shell,
+.liquid-glass-panel {
+  border: 1px solid rgba(241, 238, 229, 0.18);
+  background:
+    linear-gradient(135deg, rgba(241, 238, 229, 0.14), rgba(11, 14, 11, 0.38) 42%, rgba(19, 24, 19, 0.68)),
+    rgba(11, 14, 11, 0.44);
+  box-shadow:
+    0 16px 44px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+  backdrop-filter: blur(22px) saturate(150%);
+}
+
+.liquid-glass-control {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 90% 110%, rgba(241, 238, 229, 0.2), transparent 34%),
+    rgba(255, 255, 255, 0.025);
+  background-position: 100% 100%;
+  background-size: 180% 180%;
+  transition:
+    background-position 500ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 400ms cubic-bezier(0.16, 1, 0.3, 1),
+    color 250ms ease,
+    transform 400ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.liquid-glass-control::before {
+  position: absolute;
+  inset: -60% -35%;
+  z-index: -1;
+  border-radius: 50%;
+  background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.2) 48%, transparent 66%);
+  content: "";
+  opacity: 0;
+  transform: translate3d(-34%, 12%, 0) rotate(-8deg);
+  transition:
+    opacity 250ms ease,
+    transform 650ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.liquid-glass-control:hover {
+  background-position: 0 0;
+  box-shadow: inset 0 0 0 1px rgba(241, 238, 229, 0.12);
+  transform: translateY(-1px) scale(1.02);
+}
+
+.liquid-glass-control:hover::before {
+  opacity: 1;
+  transform: translate3d(34%, -8%, 0) rotate(7deg);
+}
+
+.liquid-glass-control:active {
+  background-position: 48% 18%;
+  transform: translateY(1px) scale(0.96);
+  transition-duration: 120ms;
+}
+
+.liquid-glass-control:focus-visible {
+  box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--gold);
+}
+
+.liquid-glass-cta {
+  background:
+    radial-gradient(circle at 88% 110%, rgba(255, 255, 255, 0.42), transparent 38%),
+    var(--gold);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .liquid-glass-control,
+  .liquid-glass-control::before {
+    transition-duration: 0.01ms;
+  }
 }
 
 .rounded-lg,
@@ -74,11 +158,7 @@ textarea {
 .rounded-\[2\.25rem\],
 .rounded-\[2\.5rem\],
 .rounded-\[1\.5rem\] {
-  border-radius: 10px !important;
-}
-
-.uppercase {
-  text-transform: none !important;
+  border-radius: 8px !important;
 }
 
 .tracking-\[0\.16em\],

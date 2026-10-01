@@ -1,5 +1,9 @@
 import { redirect } from "next/navigation";
 import { SiteHeader } from "@/components/site-header";
+import {
+  SCALP_NECK_MASSAGE_ADDON_DURATION,
+  SCALP_NECK_MASSAGE_ADDON_PRICE,
+} from "@/lib/config";
 import { getAdminSettings, getSessionProfile } from "@/lib/data";
 
 export default async function SettingsPage() {
@@ -25,6 +29,10 @@ export default async function SettingsPage() {
           <Setting label="Referral discount" value={`$${settings.referral_discount_amount}`} />
           <Setting label="Haircut duration" value={`${settings.haircut_duration_minutes} min`} />
           <Setting label="Haircut + beard duration" value={`${settings.haircut_beard_duration_minutes} min`} />
+          <Setting
+            label="Scalp/neck massage add-on"
+            value={`$${SCALP_NECK_MASSAGE_ADDON_PRICE} / ${SCALP_NECK_MASSAGE_ADDON_DURATION} min`}
+          />
           <Setting label="Cancellation window" value={`${settings.cancellation_window_hours} hours`} />
           <Setting
             label="Customer changes"

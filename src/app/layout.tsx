@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Allura, Inter, Outfit } from "next/font/google";
+import { Cormorant_Garamond, Inter, Outfit } from "next/font/google";
 import "./globals.css";
 
 const inter = Inter({
@@ -12,10 +12,10 @@ const outfit = Outfit({
   variable: "--font-outfit",
 });
 
-const allura = Allura({
+const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
-  weight: "400",
-  variable: "--font-allura",
+  weight: ["500", "600", "700"],
+  variable: "--font-cormorant",
 });
 
 export const metadata: Metadata = {
@@ -55,7 +55,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${outfit.variable} ${allura.variable} h-full antialiased`}
+      className={`${inter.variable} ${outfit.variable} ${cormorant.variable} h-full antialiased`}
     >
       <body
         className="flex min-h-full flex-col bg-background text-foreground"

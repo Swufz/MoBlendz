@@ -1,6 +1,9 @@
 import type { AdminSettings, BusinessHours, ServiceType, WeeklyAvailability } from "@/lib/types";
 
 export const BRAND_NAME = "MoBlendz";
+export const SCALP_NECK_MASSAGE_ADDON_PRICE = 15;
+export const SCALP_NECK_MASSAGE_ADDON_DURATION = 15;
+export const SCALP_NECK_MASSAGE_ADDON_LABEL = "Scalp/neck massage";
 
 export const defaultBusinessHours: BusinessHours = {
   monday: { enabled: true, start: "09:00", end: "18:00" },
@@ -45,6 +48,23 @@ export const serviceLabels: Record<ServiceType, string> = {
   haircut: "Haircut",
   haircut_beard: "Haircut + Beard",
 };
+
+export function hasScalpNeckMassageAddon(notes?: string | null) {
+  return notes?.split("\n").includes(SCALP_NECK_MASSAGE_ADDON_LABEL) ?? false;
+}
+
+export function formatServiceLabel(serviceType: ServiceType, hasMassageAddon = false) {
+  return hasMassageAddon
+    ? `${serviceLabels[serviceType]} + ${SCALP_NECK_MASSAGE_ADDON_LABEL}`
+    : serviceLabels[serviceType];
+}
+
+export function getCustomerBookingNotes(notes?: string | null) {
+  return notes
+    ?.split("\n")
+    .filter((line) => line !== SCALP_NECK_MASSAGE_ADDON_LABEL)
+    .join("\n") || null;
+}
 
 export function getServicePrice(
   serviceType: ServiceType,

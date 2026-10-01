@@ -11,7 +11,13 @@ import {
   getDefaultAvatarUrl,
   rangesOverlap,
 } from "@/lib/business-logic";
-import { getServiceDuration, getServicePrice } from "@/lib/config";
+import {
+  getServiceDuration,
+  getServicePrice,
+  SCALP_NECK_MASSAGE_ADDON_DURATION,
+  SCALP_NECK_MASSAGE_ADDON_LABEL,
+  SCALP_NECK_MASSAGE_ADDON_PRICE,
+} from "@/lib/config";
 import { getAdminSettings } from "@/lib/data";
 import {
   getLocalDateBounds,
@@ -28,6 +34,7 @@ const activeBookingLimitMessage =
 
 const bookingSchema = z.object({
   serviceType: z.enum(["haircut", "haircut_beard"]),
+  scalpNeckMassage: z.coerce.boolean().optional(),
   date: z.string().min(1),
   time: z.string().min(1),
   notes: z.string().max(500).optional(),
@@ -74,6 +81,7 @@ export async function signOut() {
 export async function createBooking(formData: FormData) {
   const parsed = bookingSchema.safeParse({
     serviceType: formData.get("serviceType"),
+    scalpNeckMassage: formData.get("scalpNeckMassage"),
     date: formData.get("date"),
     time: formData.get("time"),
     notes: formData.get("notes")?.toString() ?? "",
@@ -180,7 +188,10 @@ export async function createBooking(formData: FormData) {
 
   const settings = await getAdminSettings();
   const startsAt = combineDateAndTime(parsed.data.date, parsed.data.time);
-  const duration = getServiceDuration(parsed.data.serviceType, settings);
+  const hasMassageAddon = Boolean(parsed.data.scalpNeckMassage);
+  const duration =
+    getServiceDuration(parsed.data.serviceType, settings) +
+    (hasMassageAddon ? SCALP_NECK_MASSAGE_ADDON_DURATION : 0);
   const rangeStart = createBookingDateTime(getBusinessDate(), "00:00");
   const rangeEnd = createBookingDateTime(addIsoDateDays(getBusinessDate(), 14), "00:00");
 
@@ -247,7 +258,9 @@ export async function createBooking(formData: FormData) {
     };
   }
 
-  const basePrice = getServicePrice(parsed.data.serviceType, settings);
+  const basePrice =
+    getServicePrice(parsed.data.serviceType, settings) +
+    (hasMassageAddon ? SCALP_NECK_MASSAGE_ADDON_PRICE : 0);
   const discountAmount = referralDiscountEligible
     ? Math.min(Number(settings.referral_discount_amount ?? 5), basePrice)
     : 0;
@@ -263,11 +276,17 @@ export async function createBooking(formData: FormData) {
     date_time: startsAt.toISOString(),
     duration_minutes: duration,
     status: "pending",
-    notes: parsed.data.notes || null,
+    notes: formatBookingNotes(parsed.data.notes, hasMassageAddon),
   }).select("*").single<Booking>();
 
   if (error) {
-    return { ok: false, message: error.message };
+    return {
+      ok: false,
+      message:
+        error.code === "23P01" || error.message.includes("BOOKING_TIME_CONFLICT")
+          ? "That time is no longer available. Please choose another time."
+          : error.message,
+    };
   }
 
   await sendBookingConfirmationEmails({ booking, profile }).catch((sendError) => {
@@ -282,12 +301,22 @@ export async function createBooking(formData: FormData) {
     booking: {
       id: booking.id,
       serviceType: booking.service_type,
+      scalpNeckMassage: hasMassageAddon,
       dateTime: booking.date_time,
       finalPrice,
       status: booking.status,
       durationMinutes: booking.duration_minutes,
     },
   };
+}
+
+function formatBookingNotes(notes: string | undefined, hasMassageAddon: boolean) {
+  const cleanNotes = notes?.trim();
+  if (!hasMassageAddon) {
+    return cleanNotes || null;
+  }
+
+  return [SCALP_NECK_MASSAGE_ADDON_LABEL, cleanNotes].filter(Boolean).join("\n");
 }
 
 export async function getMyActiveUpcomingBookingLimitStatus() {
@@ -426,21 +455,35 @@ export async function cancelBooking(bookingId: string) {
     .maybeSingle<Booking>();
 
   if (!booking) {
-    return;
+    redirect("/bookings?cancel=unavailable");
   }
 
   const settings = await getAdminSettings();
   const cutoff = addMinutes(new Date(), settings.cancellation_window_hours * 60);
   if (!settings.allow_customer_cancellation || new Date(booking.date_time) < cutoff) {
-    throw new Error("This booking can no longer be cancelled online.");
+    redirect("/bookings?cancel=too-late");
   }
 
-  await supabase.from("bookings").update({
-    status: "cancelled",
-    updated_at: new Date().toISOString(),
-  }).eq("id", booking.id);
+  const cancelledAt = new Date().toISOString();
+  const { data: cancelledBooking, error } = await supabase
+    .from("bookings")
+    .update({
+      status: "cancelled",
+      cancelled_at: cancelledAt,
+      updated_at: cancelledAt,
+    })
+    .eq("id", booking.id)
+    .in("status", ["pending", "confirmed"])
+    .select("id")
+    .maybeSingle<{ id: string }>();
+
+  if (error || !cancelledBooking) {
+    redirect("/bookings?cancel=unavailable");
+  }
 
   revalidatePath("/profile");
+  revalidatePath("/bookings");
+  redirect("/bookings?cancel=success");
 }
 
 export async function adminCancelBooking(bookingId: string) {

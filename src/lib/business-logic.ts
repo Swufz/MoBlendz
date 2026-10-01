@@ -5,7 +5,11 @@ import {
   isBefore,
   parse,
 } from "date-fns";
-import { defaultAdminSettings, serviceLabels } from "@/lib/config";
+import {
+  defaultAdminSettings,
+  formatServiceLabel,
+  hasScalpNeckMassageAddon,
+} from "@/lib/config";
 import { createBookingDateTime } from "@/lib/timezone";
 import type {
   AdminSettings,
@@ -136,7 +140,7 @@ export function calculateCompletionSummary({
   referralCredit,
   settings,
 }: {
-  booking: Pick<Booking, "service_type" | "base_price">;
+  booking: Pick<Booking, "service_type" | "base_price" | "notes">;
   loyalty: Pick<
     Loyalty,
     "paid_haircuts_since_last_free" | "free_haircuts_available"
@@ -167,7 +171,10 @@ export function calculateCompletionSummary({
   }
 
   return {
-    serviceLabel: serviceLabels[booking.service_type],
+    serviceLabel: formatServiceLabel(
+      booking.service_type,
+      hasScalpNeckMassageAddon(booking.notes),
+    ),
     basePrice: booking.base_price,
     hasFreeHaircut,
     freeHaircutApplied,

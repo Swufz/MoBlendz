@@ -1,6 +1,10 @@
 import { Resend } from "resend";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { serviceLabels } from "@/lib/config";
+import {
+  formatServiceLabel,
+  getCustomerBookingNotes,
+  hasScalpNeckMassageAddon,
+} from "@/lib/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   formatBookingDate,
@@ -389,7 +393,7 @@ function createBookingEmailView(booking: Booking): BookingEmailView {
   const discountAmount = Number(booking.discount_amount ?? 0);
 
   return {
-    service: formatServiceName(booking.service_type),
+    service: formatServiceName(booking.service_type, booking.notes),
     date: formatBookingDate(booking.date_time),
     time: formatBookingTime(booking.date_time),
     dateTime: formatBookingDateTime(booking.date_time),
@@ -399,7 +403,7 @@ function createBookingEmailView(booking: Booking): BookingEmailView {
       booking.discount_type === "referral" && discountAmount > 0
         ? `$${formatCashAmount(discountAmount)}`
         : null,
-    notes: booking.notes,
+    notes: getCustomerBookingNotes(booking.notes),
   };
 }
 
@@ -456,8 +460,11 @@ function renderLocationBlock() {
     </div>`;
 }
 
-export function formatServiceName(serviceType: Booking["service_type"]) {
-  return serviceLabels[serviceType];
+export function formatServiceName(
+  serviceType: Booking["service_type"],
+  notes?: string | null,
+) {
+  return formatServiceLabel(serviceType, hasScalpNeckMassageAddon(notes));
 }
 
 function formatStatus(status: Booking["status"]) {

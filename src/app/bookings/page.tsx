@@ -6,10 +6,19 @@ import { SiteHeader } from "@/components/site-header";
 import { StatusBadge } from "@/components/luxury-ui";
 import { formatBookingDate, formatBookingTime } from "@/lib/business-logic";
 import { getAdminSettings, getMyBookings, getSessionProfile } from "@/lib/data";
-import { serviceLabels } from "@/lib/config";
+import {
+  formatServiceLabel,
+  getCustomerBookingNotes,
+  hasScalpNeckMassageAddon,
+} from "@/lib/config";
 import type { Booking } from "@/lib/types";
 
-export default async function MyBookingsPage() {
+export default async function MyBookingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ cancel?: string }>;
+}) {
+  const { cancel } = await searchParams;
   const { profile } = await getSessionProfile();
 
   if (!profile) {
@@ -35,6 +44,22 @@ export default async function MyBookingsPage() {
     <>
       <SiteHeader profile={profile} />
       <main className="mx-auto w-full max-w-5xl px-4 pb-28 pt-8 lg:pb-12">
+        {cancel ? (
+          <p
+            role="status"
+            className={`mb-6 rounded-md border px-4 py-3 text-sm ${
+              cancel === "success"
+                ? "border-success/35 bg-success/10 text-success"
+                : "border-danger/35 bg-danger/10 text-danger"
+            }`}
+          >
+            {cancel === "success"
+              ? "Booking cancelled."
+              : cancel === "too-late"
+                ? `Online cancellation closes ${settings.cancellation_window_hours} hours before the appointment.`
+                : "This booking is no longer available to cancel."}
+          </p>
+        ) : null}
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gold">
@@ -60,7 +85,7 @@ export default async function MyBookingsPage() {
               {upcoming.map((booking) => (
                 <BookingCard
                   key={booking.id}
-                  allowCancel={settings.allow_customer_cancellation}
+                  canCancel={settings.allow_customer_cancellation}
                   booking={booking}
                 />
               ))}
@@ -88,25 +113,30 @@ export default async function MyBookingsPage() {
 }
 
 function BookingCard({
-  allowCancel = false,
+  canCancel = false,
   booking,
 }: {
-  allowCancel?: boolean;
+  canCancel?: boolean;
   booking: Booking;
 }) {
   const cashDue = getCashDue(booking);
-  const canCancel = allowCancel && ["pending", "confirmed"].includes(booking.status);
+  const customerNotes = getCustomerBookingNotes(booking.notes);
 
   return (
     <article className="rounded-lg border border-line bg-surface p-5 ">
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
         <div>
-          <p className="text-lg font-semibold">{serviceLabels[booking.service_type]}</p>
+          <p className="text-lg font-semibold">
+            {formatServiceLabel(
+              booking.service_type,
+              hasScalpNeckMassageAddon(booking.notes),
+            )}
+          </p>
           <p className="mt-1 text-sm text-muted">
             {formatBookingDate(booking.date_time)} at {formatBookingTime(booking.date_time)}
           </p>
-          {booking.notes ? (
-            <p className="mt-3 text-sm leading-6 text-muted">{booking.notes}</p>
+          {customerNotes ? (
+            <p className="mt-3 text-sm leading-6 text-muted">{customerNotes}</p>
           ) : null}
         </div>
         <div className="flex items-center gap-2 sm:flex-col sm:items-end">

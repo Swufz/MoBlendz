@@ -1,16 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { CalendarDays, Crown, Home, Menu, Scissors, Star, UserRound, X } from "lucide-react";
 import { LogoutButton } from "@/components/logout-button";
-import { BRAND_NAME } from "@/lib/config";
 import type { Profile } from "@/lib/types";
 
 const navItems = [
   { href: "/", label: "Home", icon: Home },
   { href: "/#services", label: "Services", icon: Scissors },
+  { href: "/#recent-cuts", label: "Gallery", icon: Star },
 ];
 
 const customerNavItems = [
@@ -31,6 +31,7 @@ const adminNavItems = [
 
 export function SiteHeader({ profile }: { profile?: Profile | null }) {
   const [isOpen, setIsOpen] = useState(false);
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const isAdmin = profile?.role === "admin";
   const isCustomer = profile?.role === "customer";
@@ -68,47 +69,41 @@ export function SiteHeader({ profile }: { profile?: Profile | null }) {
 
   return (
     <>
-      <header className="sticky top-0 z-40 border-b border-line bg-background">
-        <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4">
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              aria-label="Open menu"
-              onClick={() => setIsOpen(true)}
-              className="grid size-10 place-items-center rounded-md border border-line bg-surface text-foreground lg:hidden"
-            >
-              <Menu size={20} />
-            </button>
-            <Link href="/" className="flex items-center gap-3">
-              <span className="grid size-9 place-items-center rounded-md border border-line bg-surface text-gold">
-                <Crown size={22} />
-              </span>
-              <span className="font-brand text-3xl text-foreground">
-                {BRAND_NAME}
-              </span>
-            </Link>
-          </div>
+      <header
+        className={`${pathname === "/" ? "fixed" : "sticky"} inset-x-0 top-0 z-40 pointer-events-none px-3 pt-3 sm:px-5`}
+      >
+        <div className="liquid-glass-shell pointer-events-auto mx-auto flex min-h-14 w-fit max-w-full items-center gap-1 rounded-full p-1.5">
+          <button
+            type="button"
+            aria-label="Open menu"
+            onClick={() => setIsOpen(true)}
+            className="liquid-glass-control grid size-11 shrink-0 place-items-center rounded-full text-foreground lg:hidden"
+          >
+            <Menu size={19} />
+          </button>
 
-          <nav className="hidden items-center gap-7 lg:flex">
+          <nav className="hidden items-center gap-1 lg:flex" aria-label="Primary navigation">
             {desktopNavItems.map((item) => (
-              <Link
+              <NavigationLink
                 key={item.href}
                 href={item.href}
-                className="text-sm font-semibold text-muted transition hover:text-gold"
+                className="liquid-glass-control rounded-full px-4 py-2.5 text-sm font-semibold text-muted hover:text-foreground"
               >
                 {item.label}
-              </Link>
+              </NavigationLink>
             ))}
           </nav>
 
-          <div className="flex items-center gap-2">
+          <span className="mx-1 hidden h-5 w-px bg-white/15 lg:block" aria-hidden="true" />
+
+          <div className="flex items-center gap-1">
             {profile ? (
-              <LogoutButton className="hidden h-10 rounded-md border border-line bg-surface px-3 text-sm font-semibold text-muted transition hover:text-foreground lg:inline-flex lg:items-center" />
+              <LogoutButton className="liquid-glass-control hidden h-10 items-center rounded-full px-4 text-sm font-semibold text-muted hover:text-foreground lg:inline-flex" />
             ) : null}
             {!isAdmin ? (
               <Link
                 href={ctaHref}
-                className="hidden h-10 items-center rounded-md bg-gold px-4 text-sm font-semibold text-background sm:inline-flex"
+                className="liquid-glass-control liquid-glass-cta hidden h-10 items-center rounded-full px-5 text-sm font-semibold text-background sm:inline-flex"
               >
                 {isCustomer ? "Book" : "Book Now"}
               </Link>
@@ -116,7 +111,8 @@ export function SiteHeader({ profile }: { profile?: Profile | null }) {
             <Link
               href={profileHref}
               aria-label={profile ? (isAdmin ? "Open admin dashboard" : "Open profile") : "Login"}
-              className="grid size-10 place-items-center overflow-hidden rounded-md border border-line bg-secondary-card text-gold"
+              title={profile ? (isAdmin ? "Admin dashboard" : "Profile") : "Sign in"}
+              className="liquid-glass-control grid size-11 shrink-0 place-items-center overflow-hidden rounded-full text-gold"
             >
               {profile?.avatar_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -130,28 +126,23 @@ export function SiteHeader({ profile }: { profile?: Profile | null }) {
       </header>
 
       <div
-        className={`fixed inset-0 z-50 bg-black/60 transition lg:hidden ${
+        className={`fixed inset-0 z-50 bg-black/55 backdrop-blur-sm transition lg:hidden ${
           isOpen ? "opacity-100" : "pointer-events-none opacity-0"
         }`}
         onClick={() => setIsOpen(false)}
       />
       <aside
-        className={`fixed left-0 top-0 z-50 h-full w-72 max-w-[85vw] border-r border-line bg-surface p-4 shadow-sm transition-transform lg:hidden ${
-          isOpen ? "translate-x-0" : "-translate-x-full"
+        className={`liquid-glass-panel fixed left-3 top-3 z-50 h-[calc(100%-1.5rem)] w-72 max-w-[85vw] rounded-2xl p-4 transition-transform lg:hidden ${
+          isOpen ? "translate-x-0" : "-translate-x-[calc(100%+1.5rem)]"
         }`}
       >
         <div className="flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-3" onClick={() => setIsOpen(false)}>
-            <span className="grid size-9 place-items-center rounded-md border border-line bg-background text-gold">
-              <Crown size={20} />
-            </span>
-            <span className="font-brand text-3xl">{BRAND_NAME}</span>
-          </Link>
+          <p className="px-2 text-sm font-semibold text-muted">Navigation</p>
           <button
             type="button"
             aria-label="Close menu"
             onClick={() => setIsOpen(false)}
-            className="grid size-10 place-items-center rounded-md border border-line text-muted"
+            className="liquid-glass-control grid size-10 place-items-center rounded-full text-muted"
           >
             <X size={18} />
           </button>
@@ -160,15 +151,15 @@ export function SiteHeader({ profile }: { profile?: Profile | null }) {
           {mobileNavItems.map((item) => {
             const Icon = item.icon;
             return (
-              <Link
+              <NavigationLink
                 key={item.href}
                 href={item.href}
                 onClick={() => setIsOpen(false)}
-                className="flex items-center gap-3 rounded-md border border-line bg-background px-3 py-2 text-sm font-semibold text-foreground"
+                className="liquid-glass-control flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-foreground"
               >
                 <Icon size={18} className="text-gold" />
                 {item.label}
-              </Link>
+              </NavigationLink>
             );
           })}
         </nav>
@@ -176,27 +167,56 @@ export function SiteHeader({ profile }: { profile?: Profile | null }) {
           <Link
             href={ctaHref}
             onClick={() => setIsOpen(false)}
-            className="mt-5 flex h-10 items-center justify-center rounded-md bg-gold text-sm font-semibold text-background"
+            className="liquid-glass-control liquid-glass-cta mt-5 flex h-11 items-center justify-center rounded-full text-sm font-semibold text-background"
           >
             {isCustomer ? "Book" : "Book Now"}
           </Link>
         ) : null}
         {profile ? (
-          <LogoutButton className="mt-3 h-10 w-full rounded-md border border-line text-sm font-semibold text-muted" />
+          <LogoutButton className="liquid-glass-control mt-3 h-11 w-full rounded-full text-sm font-semibold text-muted" />
         ) : null}
       </aside>
 
-      <nav className="fixed bottom-0 left-0 z-40 grid w-full grid-cols-4 border-t border-line bg-surface lg:hidden">
+      <nav
+        className="liquid-glass-shell fixed bottom-3 left-1/2 z-40 grid w-[calc(100%-1.5rem)] max-w-md -translate-x-1/2 grid-cols-4 rounded-full p-1.5 lg:hidden"
+        aria-label="Quick navigation"
+      >
         {bottomNavItems.map((item) => {
           const Icon = item.icon;
           return (
-            <Link key={item.href} href={item.href} className="grid place-items-center gap-1 py-2 text-[11px] font-semibold text-muted">
+            <NavigationLink key={item.href} href={item.href} className="liquid-glass-control grid min-w-0 place-items-center gap-1 rounded-full py-2 text-[11px] font-semibold text-muted">
               <Icon size={18} className="text-gold" />
               {item.label}
-            </Link>
+            </NavigationLink>
           );
         })}
       </nav>
     </>
+  );
+}
+
+function NavigationLink({
+  children,
+  className,
+  href,
+  onClick,
+}: {
+  children: React.ReactNode;
+  className: string;
+  href: string;
+  onClick?: () => void;
+}) {
+  if (href === "/" || href.startsWith("/#")) {
+    return (
+      <a href={href} className={className} onClick={onClick}>
+        {children}
+      </a>
+    );
+  }
+
+  return (
+    <Link href={href} className={className} onClick={onClick}>
+      {children}
+    </Link>
   );
 }

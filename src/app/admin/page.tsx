@@ -3,7 +3,11 @@ import { redirect } from "next/navigation";
 import { CalendarCheck, Clock, DollarSign, Scissors, UsersRound } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { formatBookingDate, formatBookingTime } from "@/lib/business-logic";
-import { serviceLabels } from "@/lib/config";
+import {
+  formatServiceLabel,
+  getCustomerBookingNotes,
+  hasScalpNeckMassageAddon,
+} from "@/lib/config";
 import { getSessionProfile, getSupabaseOrNull } from "@/lib/data";
 import { getBusinessDate, getBusinessDateBounds } from "@/lib/timezone";
 import type { Booking } from "@/lib/types";
@@ -19,7 +23,7 @@ type AdminDashboardStats = {
 
 type DashboardBooking = Pick<
   Booking,
-  "id" | "service_type" | "date_time" | "status" | "duration_minutes"
+  "id" | "service_type" | "date_time" | "status" | "duration_minutes" | "notes"
 > & {
   profiles?: {
     full_name: string;
@@ -115,10 +119,20 @@ export default async function AdminPage() {
                     <p className="text-sm text-muted">{booking.profiles?.phone ?? "No phone"}</p>
                   </div>
                   <div>
-                    <p className="font-semibold">{serviceLabels[booking.service_type]}</p>
+                    <p className="font-semibold">
+                      {formatServiceLabel(
+                        booking.service_type,
+                        hasScalpNeckMassageAddon(booking.notes),
+                      )}
+                    </p>
                     <p className="text-sm text-muted">
                       {formatBookingDate(booking.date_time)} at {formatBookingTime(booking.date_time)}
                     </p>
+                    {getCustomerBookingNotes(booking.notes) ? (
+                      <p className="mt-1 text-sm text-gold">
+                        {getCustomerBookingNotes(booking.notes)}
+                      </p>
+                    ) : null}
                   </div>
                   <Link
                     href={`/admin/bookings/${booking.id}/complete`}
@@ -170,7 +184,7 @@ async function fetchTodaysBookings(
   console.time("bookings fetch");
   const result = await supabase!
     .from("bookings")
-    .select("id, service_type, date_time, status, duration_minutes, profiles(full_name, phone)")
+    .select("id, service_type, date_time, status, duration_minutes, notes, profiles(full_name, phone)")
     .gte("date_time", startOfToday.toISOString())
     .lte("date_time", endOfToday.toISOString())
     .in("status", ["pending", "confirmed"])

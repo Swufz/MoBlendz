@@ -11,8 +11,12 @@ import {
 import { formatBookingDate, formatBookingTime } from "@/lib/business-logic";
 import {
   defaultAdminSettings,
+  formatServiceLabel,
   getServiceDuration,
   getServicePrice,
+  SCALP_NECK_MASSAGE_ADDON_DURATION,
+  SCALP_NECK_MASSAGE_ADDON_LABEL,
+  SCALP_NECK_MASSAGE_ADDON_PRICE,
   serviceLabels,
 } from "@/lib/config";
 import {
@@ -45,6 +49,7 @@ type ActiveBooking = {
 
 type PendingBooking = {
   serviceType: ServiceType;
+  scalpNeckMassage?: boolean;
   date: string;
   time: string;
   notes: string;
@@ -59,6 +64,7 @@ type PendingBooking = {
 type CompletedBooking = {
   id: string;
   serviceType: ServiceType;
+  scalpNeckMassage?: boolean;
   dateTime: string;
   finalPrice: number;
   status: BookingStatus;
@@ -89,18 +95,25 @@ type BookingActionResult =
 export function BookingWizard({
   settings = defaultAdminSettings,
   shouldResume = false,
+  shouldStartFresh = false,
   initialIsLoggedIn = false,
   initialReferralCode = "",
+  initialScalpNeckMassage = false,
+  initialServiceType = "haircut",
   weeklyAvailability,
 }: {
   settings?: AdminSettings;
   shouldResume?: boolean;
+  shouldStartFresh?: boolean;
   initialIsLoggedIn?: boolean;
   initialReferralCode?: string;
+  initialScalpNeckMassage?: boolean;
+  initialServiceType?: ServiceType;
   weeklyAvailability?: WeeklyAvailability[];
 }) {
   const [step, setStep] = useState(0);
-  const [serviceType, setServiceType] = useState<ServiceType>("haircut");
+  const [serviceType, setServiceType] = useState<ServiceType>(initialServiceType);
+  const [scalpNeckMassage, setScalpNeckMassage] = useState(initialScalpNeckMassage);
   const [date, setDate] = useState(() => getBusinessDate());
   const [time, setTime] = useState("");
   const [notes, setNotes] = useState("");
@@ -128,8 +141,12 @@ export function BookingWizard({
   const selectedDate = useMemo(() => {
     return createBookingDateTime(date, "12:00");
   }, [date]);
-  const price = getServicePrice(serviceType, settings);
-  const duration = getServiceDuration(serviceType, settings);
+  const price =
+    getServicePrice(serviceType, settings) +
+    (scalpNeckMassage ? SCALP_NECK_MASSAGE_ADDON_PRICE : 0);
+  const duration =
+    getServiceDuration(serviceType, settings) +
+    (scalpNeckMassage ? SCALP_NECK_MASSAGE_ADDON_DURATION : 0);
   const dateOptions = useMemo(
     () => buildDateOptions(duration, weeklyAvailability),
     [duration, weeklyAvailability],
@@ -167,6 +184,13 @@ export function BookingWizard({
   );
 
   useEffect(() => {
+    if (shouldStartFresh) {
+      sessionStorage.removeItem(completedBookingKey);
+      clearPendingBooking();
+      const timeoutId = window.setTimeout(() => setIsDraftStorageReady(true), 0);
+      return () => window.clearTimeout(timeoutId);
+    }
+
     const savedConfirmation = readCompletedBooking();
     if (savedConfirmation) {
       // Restore client-only sessionStorage state after hydration.
@@ -205,7 +229,7 @@ export function BookingWizard({
     setMessage("Welcome back. Finishing your booking now...");
     submitDraft(draft);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shouldResume]);
+  }, [shouldResume, shouldStartFresh]);
 
   useEffect(() => {
     if (!isDraftStorageReady || completedBooking) {
@@ -221,6 +245,7 @@ export function BookingWizard({
     notes,
     referralCode,
     referralDiscountAmount,
+    scalpNeckMassage,
     serviceType,
     time,
   ]);
@@ -360,6 +385,7 @@ export function BookingWizard({
 
   function applyDraft(draft: PendingBooking) {
     setServiceType(draft.serviceType);
+    setScalpNeckMassage(Boolean(draft.scalpNeckMassage));
     setDate(draft.date || draft.selectedDate || getBusinessDate());
     setTime(draft.time || draft.selectedTime || "");
     setNotes(draft.notes ?? "");
@@ -373,6 +399,7 @@ export function BookingWizard({
       finalPrice: cashDue,
       notes,
       referralCode,
+      scalpNeckMassage,
       serviceType,
       time,
     });
@@ -434,6 +461,7 @@ export function BookingWizard({
 
     const formData = new FormData();
     formData.set("serviceType", draftToSubmit.serviceType);
+    formData.set("scalpNeckMassage", String(Boolean(draftToSubmit.scalpNeckMassage)));
     formData.set("date", draftToSubmit.date);
     formData.set("time", draftToSubmit.time);
     formData.set("notes", draftToSubmit.notes);
@@ -574,6 +602,27 @@ export function BookingWizard({
                 </button>
               );
             })}
+            <label className="flex cursor-pointer items-center justify-between rounded-lg border border-line bg-background p-4 transition hover:border-gold/50">
+              <span className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={scalpNeckMassage}
+                  onChange={(event) => setScalpNeckMassage(event.target.checked)}
+                  className="size-5 accent-gold"
+                />
+                <span>
+                  <span className="block text-lg font-semibold">
+                    {SCALP_NECK_MASSAGE_ADDON_LABEL}
+                  </span>
+                  <span className="text-muted">
+                    +{SCALP_NECK_MASSAGE_ADDON_DURATION} minutes
+                  </span>
+                </span>
+              </span>
+              <span className="text-xl font-semibold">
+                +${SCALP_NECK_MASSAGE_ADDON_PRICE}
+              </span>
+            </label>
           </div>
         ) : null}
 
@@ -652,8 +701,10 @@ export function BookingWizard({
             referralCode={referralCode}
             referralDiscountAmount={referralDiscountAmount}
             referralMessage={referralMessage}
+            scalpNeckMassage={scalpNeckMassage}
             serviceType={serviceType}
             setReferralCode={setReferralCode}
+            setScalpNeckMassage={setScalpNeckMassage}
             setNotes={setNotes}
             time={time}
             isCheckingReferral={isCheckingReferral}
@@ -767,8 +818,10 @@ function BookingReview({
   referralCode,
   referralDiscountAmount,
   referralMessage,
+  scalpNeckMassage,
   serviceType,
   setReferralCode,
+  setScalpNeckMassage,
   setNotes,
   time,
   isCheckingReferral,
@@ -783,8 +836,10 @@ function BookingReview({
   referralCode: string;
   referralDiscountAmount: number;
   referralMessage: string;
+  scalpNeckMassage: boolean;
   serviceType: ServiceType;
   setReferralCode: (referralCode: string) => void;
+  setScalpNeckMassage: (selected: boolean) => void;
   setNotes: (notes: string) => void;
   time: string;
   isCheckingReferral: boolean;
@@ -796,8 +851,31 @@ function BookingReview({
     <div className="space-y-4">
       <div className="rounded-lg border border-line bg-background p-4">
         <p className="text-sm text-muted">Service booked</p>
-        <p className="mt-1 text-lg font-semibold">{serviceLabels[serviceType]}</p>
+        <p className="mt-1 text-lg font-semibold">
+          {formatServiceLabel(serviceType, scalpNeckMassage)}
+        </p>
       </div>
+      <label
+        className={`flex cursor-pointer items-center justify-between rounded-lg border p-4 transition hover:border-gold/50 ${
+          scalpNeckMassage ? "border-gold bg-gold/10" : "border-line bg-background"
+        }`}
+      >
+        <span className="flex items-center gap-3">
+          <input
+            type="checkbox"
+            checked={scalpNeckMassage}
+            onChange={(event) => setScalpNeckMassage(event.target.checked)}
+            className="size-5 accent-gold"
+          />
+          <span>
+            <span className="block font-semibold">{SCALP_NECK_MASSAGE_ADDON_LABEL}</span>
+            <span className="text-sm text-muted">
+              +{SCALP_NECK_MASSAGE_ADDON_DURATION} minutes
+            </span>
+          </span>
+        </span>
+        <span className="font-semibold">+${SCALP_NECK_MASSAGE_ADDON_PRICE}</span>
+      </label>
       <div className="grid grid-cols-2 gap-3">
         <div className="rounded-lg border border-line bg-background p-4">
           <p className="text-sm text-muted">Date</p>
@@ -961,7 +1039,10 @@ function BookingConfirmation({
       </p>
       <h1 className="mt-2 text-3xl font-semibold">You are on the schedule.</h1>
       <dl className="mt-6 grid gap-3">
-        <SummaryRow label="Service" value={serviceLabels[booking.serviceType]} />
+        <SummaryRow
+          label="Service"
+          value={formatServiceLabel(booking.serviceType, Boolean(booking.scalpNeckMassage))}
+        />
         <SummaryRow label="Date" value={formatBookingDate(dateTime)} />
         <SummaryRow label="Time" value={formatBookingTime(dateTime)} />
         <SummaryRow label="Expected cash due" value={`$${booking.finalPrice}`} />
@@ -1083,6 +1164,7 @@ function buildPendingBookingDraft({
   finalPrice,
   notes,
   referralCode,
+  scalpNeckMassage,
   serviceType,
   time,
 }: {
@@ -1091,11 +1173,13 @@ function buildPendingBookingDraft({
   finalPrice: number;
   notes: string;
   referralCode: string;
+  scalpNeckMassage: boolean;
   serviceType: ServiceType;
   time: string;
 }): PendingBooking {
   return {
     serviceType,
+    scalpNeckMassage,
     date,
     selectedDate: date,
     time,
@@ -1117,6 +1201,7 @@ function normalizePendingBooking(draft: Partial<PendingBooking>): PendingBooking
 
   return {
     serviceType,
+    scalpNeckMassage: Boolean(draft.scalpNeckMassage),
     date,
     selectedDate: date,
     time,

@@ -8,7 +8,7 @@ export function DarkCard({
   className?: string;
 }) {
   return (
-    <div className={`rounded-lg border border-line bg-surface ${className}`}>
+    <div className={`rounded-lg border border-line bg-surface/95 ${className}`}>
       {children}
     </div>
   );
@@ -22,7 +22,7 @@ export function GoldButton({
   className?: string;
 }) {
   return (
-    <span className={`inline-flex h-10 items-center justify-center rounded-md bg-gold px-4 text-sm font-semibold text-background ${className}`}>
+    <span className={`inline-flex h-11 items-center justify-center rounded-md bg-gold px-5 text-sm font-semibold text-background transition-colors hover:bg-barber-blue-strong ${className}`}>
       {children}
     </span>
   );
@@ -44,7 +44,7 @@ export function SectionHeader({
           {eyebrow}
         </p>
       ) : null}
-      <h2 className="mt-1 text-2xl font-semibold text-foreground sm:text-3xl">
+      <h2 className="mt-1 font-heading text-3xl font-semibold text-foreground sm:text-4xl">
         {title}
       </h2>
       {copy ? <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">{copy}</p> : null}

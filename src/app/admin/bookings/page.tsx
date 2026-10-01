@@ -3,13 +3,17 @@ import { redirect } from "next/navigation";
 import { AdminCancelBookingButton } from "@/components/admin-cancel-booking-button";
 import { SiteHeader } from "@/components/site-header";
 import { formatBookingDate, formatBookingTime } from "@/lib/business-logic";
-import { serviceLabels } from "@/lib/config";
+import {
+  formatServiceLabel,
+  getCustomerBookingNotes,
+  hasScalpNeckMassageAddon,
+} from "@/lib/config";
 import { getSessionProfile, getSupabaseOrNull } from "@/lib/data";
 import type { Booking, BookingStatus } from "@/lib/types";
 
 type AdminBookingRow = Pick<
   Booking,
-  "id" | "service_type" | "date_time" | "status" | "duration_minutes" | "base_price"
+  "id" | "service_type" | "date_time" | "status" | "duration_minutes" | "base_price" | "notes"
 > & {
   profiles?: {
     full_name: string;
@@ -56,7 +60,7 @@ export default async function AdminBookingsPage({
   console.time("bookings fetch");
   let query = supabase
     .from("bookings")
-    .select("id, service_type, date_time, status, duration_minutes, base_price, profiles(full_name, email, phone)", {
+    .select("id, service_type, date_time, status, duration_minutes, base_price, notes, profiles(full_name, email, phone)", {
       count: "exact",
     })
     .order("date_time", { ascending: status === "upcoming" })
@@ -149,10 +153,20 @@ export default async function AdminBookingsPage({
                   <p className="text-sm text-muted">{booking.profiles?.phone ?? booking.profiles?.email}</p>
                 </div>
                 <div>
-                  <p className="font-semibold">{serviceLabels[booking.service_type]}</p>
+                  <p className="font-semibold">
+                    {formatServiceLabel(
+                      booking.service_type,
+                      hasScalpNeckMassageAddon(booking.notes),
+                    )}
+                  </p>
                   <p className="text-sm text-muted">
                     {formatBookingDate(booking.date_time)} at {formatBookingTime(booking.date_time)}
                   </p>
+                  {getCustomerBookingNotes(booking.notes) ? (
+                    <p className="mt-1 text-sm text-gold">
+                      {getCustomerBookingNotes(booking.notes)}
+                    </p>
+                  ) : null}
                 </div>
                 <span className="w-fit rounded-md bg-background px-3 py-1 text-xs font-semibold">
                   {booking.status}
