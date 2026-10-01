@@ -80,7 +80,7 @@ The centered content container is capped at 1360px with desktop padding of 100px
 
 Booking and My Bookings use a compact portrait hero within a 1180px container; the booking wizard is centered at a maximum width of 760px. Appointment cards carry serif service names, status, and expected cash due on the same translucent forest surface. At 700px and below, the portrait shrinks to 140px by 170px, headings span the available width, panel padding tightens, and appointment details stack above the status and price row. Bottom padding accommodates mobile navigation.
 
-Profile uses the same 1180px container with a focused, centered 760px editing form below a short text heading. Avatar and email identify the account; name, phone, and picture are immediately editable with Save changes and Reset changes. The page contains no bookings, rewards, or redundant read-only edit toggle. On mobile, padding tightens, the avatar shrinks, and actions stack at full width.
+Profile uses the same 1180px container with a focused, centered 760px editing form below a short text heading. Avatar and email identify the account; only name and phone are editable with Save changes and Reset changes. The page contains no bookings, rewards, or redundant read-only edit toggle. On mobile, padding tightens, the avatar shrinks, and actions stack at full width.
 
 ## Elevation & Depth
 
@@ -94,7 +94,7 @@ Rewards use gently rounded corners; actions and shortcuts use a slightly tighter
 
 Booking is the gold primary action, paired with an outlined bookings action. Loyalty and referral cards reuse the existing functional components. Shortcuts expose profile, bookings, and referrals with icon wells and arrows. Desktop navigation is centered and floating, with the gold right-hand Book CTA and no duplicate left-hand Book link; mobile retains menu and bottom navigation. The wizard uses distinct heading, body, and footer regions with rounded service choices and inputs; appointment cards keep cancellation controls below a divider. Hover states change surface color; account actions and flow fields expose a gold focus outline. Reduced motion disables account transitions.
 
-Profile access is through the navigation avatar and home Edit Profile shortcut. There is no text Profile navigation link or Profile dock item; the customer mobile dock uses three columns. The profile editor retains upload feedback, disabled saving/upload states, visible field focus, and upload-control focus.
+Profile access is through the navigation avatar and home Edit Profile shortcut. There is no text Profile navigation link or Profile dock item; the customer mobile dock uses three columns. The profile editor retains save feedback, disabled saving states, and visible field focus.
 
 ## Do's and Don'ts
 

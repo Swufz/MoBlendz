@@ -21,7 +21,7 @@ export default async function ProfilePage() {
             <div className="account-wordmark" aria-hidden="true">MoBlendz</div>
             <div className="account-page-heading">
               <h1 id="profile-title">Edit your profile.</h1>
-              <p>Keep your name, contact number, and profile picture up to date.</p>
+              <p>Keep your name and contact number up to date.</p>
             </div>
           </section>
           <div className="account-booking-form">

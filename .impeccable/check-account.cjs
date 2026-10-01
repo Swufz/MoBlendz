@@ -103,9 +103,7 @@ const server = http.createServer((req,res)=>{
     const sources = ${JSON.stringify(clientModules)}, cache = {}, process = {env:{NODE_ENV:'development'}};
     const mocks = {
       'next/navigation': {useRouter:()=>({refresh:()=>{}})},
-      'lucide-react': {Camera:()=>null},
       '@/lib/business-logic': {getDefaultAvatarUrl:()=>'/mb-logo.png'},
-      '@/lib/supabase/client': {createSupabaseBrowserClient:()=>{throw Error('Unexpected storage access')}},
       '@/app/actions': {updateMyProfile:async data => {window.__profilePayload = Object.fromEntries(data); return {ok:true,message:'Profile updated.'}}},
     };
     function require(name) {
@@ -135,12 +133,11 @@ const server = http.createServer((req,res)=>{
       await page.getByLabel('Full name').fill('Edited name');
       await page.getByRole('button',{name:'Save changes'}).click();
       await page.getByRole('status').waitFor();
-      assert.deepEqual(await page.evaluate(()=>window.__profilePayload), {fullName:'Edited name',phone:profile.phone,avatarUrl:profile.avatar_url});
+      assert.deepEqual(await page.evaluate(()=>window.__profilePayload), {fullName:'Edited name',phone:profile.phone});
       assert.ok(await page.getByLabel('Full name').isVisible());
-      await page.locator('input[type=file]').setInputFiles({name:'invalid.txt',mimeType:'text/plain',buffer:Buffer.from('invalid')});
-      await page.getByRole('alert').waitFor();
-      assert.ok((await page.getByRole('alert').innerText()).includes('Upload a JPG'));
-      console.log('PASS: profile immediately editable, reset, save payload, stays editable after save, and upload type validation. Backend mocked; no real profile updated.');
+      assert.equal(await page.locator('input[type=file]').count(), 0);
+      assert.equal(await page.locator('.profile-editor input').count(), 2);
+      console.log('PASS: name/phone only, reset, save payload excludes avatar, and stays editable after save. Backend mocked; no real profile updated.');
     }
     await page.close();
   }
