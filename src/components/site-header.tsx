@@ -16,7 +16,6 @@ const navItems = [
 const customerNavItems = [
   { href: "/", label: "Home", icon: Home },
   { href: "/bookings", label: "My Bookings", icon: CalendarDays },
-  { href: "/profile", label: "Profile", icon: UserRound },
 ];
 
 const adminNavItems = [
@@ -57,7 +56,6 @@ export function SiteHeader({ profile }: { profile?: Profile | null }) {
           { href: "/", label: "Home", icon: Home },
           { href: navBookingHref, label: "Book", icon: CalendarDays },
           { href: "/bookings", label: "Bookings", icon: Star },
-          { href: "/profile", label: "Profile", icon: UserRound },
         ]
       : [
           { href: "/", label: "Home", icon: Home },
@@ -69,7 +67,7 @@ export function SiteHeader({ profile }: { profile?: Profile | null }) {
   return (
     <>
       <header
-        className={`${["/", "/booking", "/bookings"].includes(pathname) ? "fixed" : "sticky"} inset-x-0 top-0 z-40 pointer-events-none px-3 pt-3 sm:px-5`}
+        className={`${["/", "/booking", "/bookings", "/profile"].includes(pathname) ? "fixed" : "sticky"} inset-x-0 top-0 z-40 pointer-events-none px-3 pt-3 sm:px-5`}
       >
         <div className="liquid-glass-shell pointer-events-auto mx-auto flex min-h-14 w-fit max-w-full items-center gap-1 rounded-full p-1.5">
           {isCustomer ? <Link href="/" className="px-4 text-xl font-bold text-foreground" style={{ fontFamily: "var(--font-outfit)" }}>MoBlendz</Link> : null}
@@ -178,7 +176,7 @@ export function SiteHeader({ profile }: { profile?: Profile | null }) {
       </aside>
 
       <nav
-        className="liquid-glass-shell fixed bottom-3 left-1/2 z-40 grid w-[calc(100%-1.5rem)] max-w-md -translate-x-1/2 grid-cols-4 rounded-full p-1.5 lg:hidden"
+        className={`liquid-glass-shell fixed bottom-3 left-1/2 z-40 grid w-[calc(100%-1.5rem)] max-w-md -translate-x-1/2 ${isCustomer ? "grid-cols-3" : "grid-cols-4"} rounded-full p-1.5 lg:hidden`}
         aria-label="Quick navigation"
       >
         {bottomNavItems.map((item) => {

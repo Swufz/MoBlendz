@@ -346,3 +346,33 @@ textarea {
   .appointment-price { text-align: right; }
   .appointments-empty { gap: 14px; font-size: 14px; }
 }
+
+.account-profile .account-page-intro { min-height: 180px; }
+.account-profile .account-page-heading { width: 100%; }
+.profile-editor { border: 1px solid #b1b8a735; border-radius: 12px; background: linear-gradient(115deg, #263a2c40, #07100d90); }
+.profile-editor-heading { display: flex; align-items: center; gap: 20px; padding: 28px 30px; border-bottom: 1px solid #b1b8a730; }
+.profile-editor-heading h2 { font-size: 36px; line-height: 1.1; margin-bottom: 6px; }
+.profile-editor-avatar { width: 72px; height: 72px; flex-shrink: 0; border-radius: 50%; object-fit: cover; border: 1px solid #bca86a50; }
+.profile-editor-fields { display: grid; gap: 24px; padding: 28px 30px; }
+.profile-editor input:not([type=file]) { min-height: 50px; border-radius: 8px; background: #07100d80; }
+.profile-image-upload { position: relative; }
+.profile-image-upload > span:nth-child(2) { min-height: 48px; width: fit-content; padding: 0 20px; border-radius: 8px; transition: border-color .2s; }
+.profile-image-upload:focus-within > span:nth-child(2) { outline: 2px solid #dec58a; outline-offset: 4px; }
+.profile-image-upload > span:nth-child(2):hover { border-color: #dec58a; }
+.profile-image-upload:has(input:disabled) { opacity: .6; pointer-events: none; }
+.profile-editor-actions { display: flex; gap: 12px; border-top: 1px solid #b1b8a730; padding-top: 24px; }
+.profile-editor-actions button { min-height: 48px; padding: 0 24px; border-radius: 8px; }
+.profile-editor-actions button[type=submit] { background: linear-gradient(120deg, #e1c98b, #bda163); color: #10170f; }
+.profile-editor-actions button[type=submit]:not(:disabled):hover { background: #e1c98b; }
+.profile-editor-actions button[type=button]:not(:disabled):hover { background: #ffffff08; }
+@media (max-width: 700px) {
+  .account-profile .account-page-intro { padding-top: 0; }
+  .account-profile .account-page-heading { padding-top: 32px; }
+  .account-profile .account-page-heading h1 { max-width: none; }
+  .profile-editor-heading { gap: 16px; padding: 22px 20px; }
+  .profile-editor-heading h2 { font-size: 30px; }
+  .profile-editor-avatar { width: 56px; height: 56px; }
+  .profile-editor-fields { padding: 24px 20px; gap: 22px; }
+  .profile-editor-actions { flex-direction: column; }
+  .profile-editor-actions button { width: 100%; }
+}

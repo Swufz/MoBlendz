@@ -28,8 +28,8 @@
   ],
   "narrative": {
     "northStar": "Forest green and champagne customer account",
-    "overview": "Scoped to customer home, Booking, and My Bookings: a calm, premium account experience grounded in the user's reference and existing assets. Booking and appointments use compact portrait heroes, a 1180px container, a centered 760px wizard, and translucent appointment cards; mobile reduces portrait size and panel padding while retaining bottom navigation space. Public landing and admin routes remain outside scope, and system behavior stays unchanged.",
-    "keyCharacteristics": ["Centered glass navigation with one gold desktop Book CTA", "Serif headings with mirrored existing portrait", "Translucent rewards, wizard, and appointment cards"],
+    "overview": "Scoped to customer home, Booking, My Bookings, and Profile: a calm, premium account experience grounded in the user's reference and existing assets. Booking and appointments use compact portrait heroes, a 1180px container, a centered 760px wizard, and translucent appointment cards; mobile reduces portrait size and panel padding while retaining bottom navigation space. Profile uses a focused 760px immediately editable name, phone, and picture form with avatar/email identification and save/reset actions, without bookings, rewards, or a read-only edit toggle; mobile actions stack. Profile access uses the navigation avatar and home shortcut, with no text Profile link or dock item and a three-column customer dock. Public landing and admin routes remain outside scope, and system behavior stays unchanged.",
+    "keyCharacteristics": ["Centered glass navigation with one gold desktop Book CTA and avatar profile access", "Serif headings with mirrored existing portrait", "Translucent rewards, wizard, appointment cards, and focused profile editor"],
     "rules": [],
     "dos": ["Do preserve the existing portrait and real rewards and appointment data.", "Do retain visible focus and reduced motion support."],
     "donts": ["Don't impose this account composition on public landing or admin routes."]
