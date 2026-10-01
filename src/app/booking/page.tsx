@@ -21,29 +21,24 @@ export default async function BookingPage({
   return (
     <>
       <SiteHeader profile={profile} />
-      <main className="flex-1 pb-28 lg:pb-16">
-        <section className="relative isolate flex min-h-72 items-end overflow-hidden border-b border-line">
-          <Image
-            src="/images/haircut 3.jpg"
-            alt="Fresh taper finished by MoBlendz"
-            fill
-            priority
-            sizes="100vw"
-            className="-z-20 object-cover object-[50%_58%]"
-          />
-          <div className="absolute inset-0 -z-10 bg-black/65" />
-          <div className="mx-auto w-full max-w-6xl px-4 pb-9 sm:px-6">
-            <p className="text-sm font-semibold text-gold">Private appointments</p>
-            <h1 className="mt-2 max-w-2xl font-heading text-5xl font-semibold text-white sm:text-6xl">
+      <main className="account-home account-flow">
+        <div className="account-flow-content">
+        <section className="account-page-intro" aria-labelledby="booking-title">
+          <div className="account-wordmark" aria-hidden="true">MoBlendz</div>
+          <div className="account-page-portrait" aria-hidden="true">
+            <Image src="/images/landing-hero.png" alt="" fill preload sizes="(min-width: 701px) 280px, 140px" className="object-contain object-bottom -scale-x-100" />
+          </div>
+          <div className="account-page-heading">
+            <h1 id="booking-title">
               Reserve your chair.
             </h1>
-            <p className="mt-3 max-w-xl text-sm leading-6 text-white/70">
+            <p>
               Pick a service, choose a time, and confirm. Cash is collected in person.
             </p>
           </div>
         </section>
 
-        <div className="mx-auto w-full max-w-6xl px-4 pt-8 sm:px-6">
+        <div className="account-booking-form">
           <BookingWizard
             initialIsLoggedIn={Boolean(profile)}
             initialReferralCode={ref ?? ""}
@@ -54,6 +49,7 @@ export default async function BookingPage({
             shouldResume={resume === "1"}
             weeklyAvailability={weeklyAvailability}
           />
+        </div>
         </div>
       </main>
     </>

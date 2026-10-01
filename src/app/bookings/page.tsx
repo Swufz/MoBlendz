@@ -1,6 +1,7 @@
 import Link from "next/link";
+import Image from "next/image";
 import { redirect } from "next/navigation";
-import { CalendarDays } from "lucide-react";
+import { ArrowRight, CalendarDays, Scissors } from "lucide-react";
 import { cancelBooking } from "@/app/actions";
 import { SiteHeader } from "@/components/site-header";
 import { StatusBadge } from "@/components/luxury-ui";
@@ -43,7 +44,8 @@ export default async function MyBookingsPage({
   return (
     <>
       <SiteHeader profile={profile} />
-      <main className="mx-auto w-full max-w-5xl px-4 pb-28 pt-8 lg:pb-12">
+      <main className="account-home account-flow">
+        <div className="account-flow-content">
         {cancel ? (
           <p
             role="status"
@@ -60,26 +62,27 @@ export default async function MyBookingsPage({
                 : "This booking is no longer available to cancel."}
           </p>
         ) : null}
-        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gold">
-              My Bookings
-            </p>
-            <h1 className="mt-2 text-4xl font-semibold">Your appointments.</h1>
-            <p className="mt-2 text-sm text-muted">
+        <section className="account-page-intro" aria-labelledby="bookings-title">
+          <div className="account-wordmark" aria-hidden="true">MoBlendz</div>
+          <div className="account-page-portrait" aria-hidden="true">
+            <Image src="/images/landing-hero.png" alt="" fill preload sizes="(min-width: 701px) 280px, 140px" className="object-contain object-bottom -scale-x-100" />
+          </div>
+          <div className="account-page-heading">
+            <h1 id="bookings-title">Your appointments.</h1>
+            <p>
               View upcoming cuts, past visits, status, and expected cash due.
             </p>
-          </div>
           <Link
             href="/book"
-            className="bg-gold text-background inline-flex h-12 items-center justify-center rounded-md px-5 text-sm font-semibold"
+            className="account-button account-button-gold mt-5"
           >
-            Book
+            Book Appointment <ArrowRight size={18} />
           </Link>
-        </div>
+          </div>
+        </section>
 
-        <section className="mt-8 space-y-4">
-          <h2 className="text-2xl font-semibold">Upcoming</h2>
+        <section className="bookings-section space-y-4">
+          <div className="bookings-section-heading"><h2>Upcoming</h2><span>{upcoming.length} {upcoming.length === 1 ? "appointment" : "appointments"}</span></div>
           {upcoming.length ? (
             <div className="grid gap-3">
               {upcoming.map((booking) => (
@@ -95,8 +98,8 @@ export default async function MyBookingsPage({
           )}
         </section>
 
-        <section className="mt-10 space-y-4">
-          <h2 className="text-2xl font-semibold">Past</h2>
+        <section className="bookings-section space-y-4">
+          <div className="bookings-section-heading"><h2>Past visits</h2><span>{past.length} {past.length === 1 ? "booking" : "bookings"}</span></div>
           {past.length ? (
             <div className="grid gap-3">
               {past.map((booking) => (
@@ -107,6 +110,7 @@ export default async function MyBookingsPage({
             <EmptyState label="No past bookings yet." />
           )}
         </section>
+        </div>
       </main>
     </>
   );
@@ -123,10 +127,12 @@ function BookingCard({
   const customerNotes = getCustomerBookingNotes(booking.notes);
 
   return (
-    <article className="rounded-lg border border-line bg-surface p-5 ">
+    <article className="appointment-card">
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
-        <div>
-          <p className="text-lg font-semibold">
+        <div className="appointment-details">
+          <span className="account-icon" aria-hidden="true"><Scissors size={23} strokeWidth={1.5} /></span>
+          <div>
+          <p className="appointment-service">
             {formatServiceLabel(
               booking.service_type,
               hasScalpNeckMassageAddon(booking.notes),
@@ -138,10 +144,11 @@ function BookingCard({
           {customerNotes ? (
             <p className="mt-3 text-sm leading-6 text-muted">{customerNotes}</p>
           ) : null}
+          </div>
         </div>
         <div className="flex items-center gap-2 sm:flex-col sm:items-end">
           <StatusBadge status={booking.status} />
-          <p className="text-lg font-semibold text-gold">${cashDue}</p>
+          <p className="appointment-price">${cashDue}<span>Expected cash due</span></p>
         </div>
       </div>
 
@@ -153,7 +160,7 @@ function BookingCard({
       ) : null}
 
       {canCancel ? (
-        <form action={cancelBooking.bind(null, booking.id)} className="mt-4">
+        <form action={cancelBooking.bind(null, booking.id)} className="appointment-cancel">
           <button className="rounded-md border border-danger/35 px-4 py-2 text-sm font-bold text-danger transition hover:bg-danger/10">
             Cancel booking
           </button>
@@ -165,9 +172,9 @@ function BookingCard({
 
 function EmptyState({ label }: { label: string }) {
   return (
-    <div className="rounded-lg border border-line bg-surface p-8 text-center text-muted ">
-      <CalendarDays className="mx-auto mb-3 text-gold" />
-      {label}
+    <div className="appointments-empty">
+      <span className="account-icon" aria-hidden="true"><CalendarDays size={25} strokeWidth={1.5} /></span>
+      <p>{label}</p>
     </div>
   );
 }

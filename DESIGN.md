@@ -1,6 +1,6 @@
 ---
-name: MoBlendz Customer Home
-description: Forest green and champagne account homepage
+name: MoBlendz Customer Account
+description: Forest green and champagne home, booking, and appointments
 colors:
   forest-base: "#0b1713"
   forest-glow: "#34483d"
@@ -60,11 +60,11 @@ components:
     padding: "14px 16px"
 ---
 
-# Design System: MoBlendz Customer Home
+# Design System: MoBlendz Customer Account
 
 ## Overview
 
-This document describes only the signed-in customer homepage. The user's forest green and gold reference establishes a calm, premium account experience with a centered glass navigation, serif greeting, portrait, rewards, and account shortcuts. It does not prescribe a redesign of public, booking, or admin routes.
+This document describes the customer homepage, Booking, and My Bookings. The user's forest green and gold reference establishes a calm, premium account experience with centered glass navigation, serif headings, the existing portrait, and translucent surfaces. Public landing and admin routes remain outside this scope; system behavior stays unchanged.
 
 ## Colors
 
@@ -78,6 +78,8 @@ Cormorant Garamond gives the welcome and reward headings their serif character. 
 
 The centered content container is capped at 1360px with desktop padding of 100px 36px 36px. The hero pairs a left greeting with the mirrored existing landing portrait, followed by two equal reward cards and three equal shortcuts, separated by 20px gaps. Below 1024px, spacing tightens and the side signature disappears. At 700px and below, the portrait sits above the greeting, rewards and shortcuts stack, and bottom padding reserves room for mobile navigation.
 
+Booking and My Bookings use a compact portrait hero within a 1180px container; the booking wizard is centered at a maximum width of 760px. Appointment cards carry serif service names, status, and expected cash due on the same translucent forest surface. At 700px and below, the portrait shrinks to 140px by 170px, headings span the available width, panel padding tightens, and appointment details stack above the status and price row. Bottom padding accommodates mobile navigation.
+
 ## Elevation & Depth
 
 Depth comes from forest radial gradients, translucent card fills, and restrained borders. Reward cards have no shadow. The navigation uses blur, a soft ambient shadow, and a subtle inset highlight. The portrait fades into its background; the wordmark remains decorative and faint.
@@ -88,10 +90,10 @@ Rewards use gently rounded corners; actions and shortcuts use a slightly tighter
 
 ## Components
 
-Booking is the gold primary action, paired with an outlined bookings action. Loyalty and referral cards reuse the existing functional components. Shortcuts expose profile, bookings, and referrals with icon wells and arrows. Desktop navigation is centered and floating; mobile retains menu and bottom navigation. Hover states change surface color; account actions expose a gold focus outline. Reduced motion disables account transitions.
+Booking is the gold primary action, paired with an outlined bookings action. Loyalty and referral cards reuse the existing functional components. Shortcuts expose profile, bookings, and referrals with icon wells and arrows. Desktop navigation is centered and floating, with the gold right-hand Book CTA and no duplicate left-hand Book link; mobile retains menu and bottom navigation. The wizard uses distinct heading, body, and footer regions with rounded service choices and inputs; appointment cards keep cancellation controls below a divider. Hover states change surface color; account actions and flow fields expose a gold focus outline. Reduced motion disables account transitions.
 
 ## Do's and Don'ts
 
 - Do preserve the existing portrait, mirrored toward the greeting, and keep decorative imagery out of the accessibility tree.
-- Do preserve readable labels, visible focus, and the real loyalty and referral data.
+- Do preserve readable labels, visible focus, and real rewards and appointment data.
 - Don't apply this page composition or its scoped styles to public or admin surfaces by default.

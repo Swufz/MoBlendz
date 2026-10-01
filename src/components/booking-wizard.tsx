@@ -537,20 +537,20 @@ export function BookingWizard({
   }
 
   return (
-    <div className="mx-auto w-full max-w-xl overflow-hidden rounded-lg border border-line bg-surface">
-      <div className="flex items-center justify-between border-b border-line bg-secondary-card/70 px-5 py-4">
+    <div className="booking-panel mx-auto w-full max-w-xl overflow-hidden rounded-lg border border-line bg-surface">
+      <div className="booking-panel-heading flex items-center justify-between border-b border-line bg-secondary-card/70 px-5 py-4">
         <div>
           <p className="text-sm font-semibold text-muted">
             Booking
           </p>
-          <h1 className="text-2xl font-semibold">{getStepTitle(step)}</h1>
+          <h2 className="text-2xl font-semibold">{getStepTitle(step)}</h2>
         </div>
         <div className="rounded-md border border-line px-2 py-1 text-sm font-semibold text-gold">
           {Math.min(step + 1, 3)}/3
         </div>
       </div>
 
-      <div className="min-h-[430px] p-5">
+      <div className="booking-panel-body min-h-[430px] p-5">
         {step === 0 ? (
           <div className="grid gap-3">
             {services.map((service) => {
@@ -726,7 +726,7 @@ export function BookingWizard({
 
       {message ? <p className="px-5 pb-3 text-sm font-bold text-gold">{message}</p> : null}
 
-      <div className="flex items-center justify-between border-t border-line p-5">
+      <div className="booking-panel-footer flex items-center justify-between border-t border-line p-5">
         <button
           type="button"
           onClick={() => {
@@ -1017,14 +1017,14 @@ function BookingConfirmation({
   const dateTime = new Date(booking.dateTime);
 
   return (
-    <section className="mx-auto w-full max-w-xl rounded-lg border border-line bg-surface p-5">
+    <section className="booking-panel booking-confirmation mx-auto w-full max-w-xl rounded-lg border border-line bg-surface p-5">
       <div className="text-gold">
         <Check />
       </div>
       <p className="mt-5 text-sm font-semibold text-muted">
         Booking confirmed
       </p>
-      <h1 className="mt-2 text-3xl font-semibold">You are on the schedule.</h1>
+      <h2 className="mt-2 text-3xl font-semibold">You are on the schedule.</h2>
       <dl className="mt-6 grid gap-3">
         <SummaryRow
           label="Service"

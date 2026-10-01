@@ -271,3 +271,78 @@ textarea {
   .account-shortcut { padding: 14px 18px; }
 }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .account-home * { transition: none; } }
+
+/* Booking and appointment surfaces inherit the customer account palette. */
+.account-flow { --muted: #b4bdb5; --surface: #122019; --background: #0b1713; --secondary-card: #1b2b21; --gold: #cbb277; --danger: #ee9c8e; --success: #8fc69d; }
+.account-flow-content { width: 100%; max-width: 1180px; margin: auto; padding: 110px 36px 64px; }
+.account-page-intro { position: relative; isolation: isolate; min-height: 240px; display: flex; align-items: center; border-bottom: 1px solid #b1b8a730; }
+.account-page-heading { position: relative; z-index: 2; width: 68%; padding: 25px 0 35px; }
+.account-page-heading h1 { font-size: clamp(48px, 5.6vw, 76px); font-weight: 600; line-height: .95; letter-spacing: -.025em; text-wrap: balance; }
+.account-page-heading > p { max-width: 54ch; margin-top: 18px; font-size: 15px; line-height: 1.7; color: var(--muted); }
+.account-page-intro .account-wordmark { top: 50px; right: 0; font-size: clamp(80px, 10vw, 145px); }
+.account-page-portrait { position: absolute; right: 24px; bottom: 0; width: 260px; height: 280px; mask-image: linear-gradient(to bottom, #000 75%, transparent); }
+.account-booking-form { max-width: 760px; margin: 32px auto 0; }
+.account-flow .booking-panel { max-width: none; border: 1px solid #b1b8a735; border-radius: 12px !important; background: linear-gradient(115deg, #263a2c40, #07100d90); }
+.account-flow .booking-panel-heading { padding: 24px 30px; background: #a9b78708; }
+.account-flow .booking-panel-heading h2 { margin-top: 4px; font-size: 36px; line-height: 1; }
+.account-flow .booking-panel-heading > div:first-child > p { font-size: 12px; }
+.account-flow .booking-panel-heading > div:last-child { border: 1px solid #bca86a50; border-radius: 8px; padding: 8px 12px; background: #bca86a0a; font-variant-numeric: tabular-nums; }
+.account-flow .booking-panel-body { padding: 28px 30px; min-height: 310px; }
+.account-flow .booking-panel-body button, .account-flow .booking-panel-body label.rounded-lg { min-height: 48px; border-radius: 10px !important; }
+.account-flow .booking-panel-body button:not(:disabled):hover { border-color: #d8bf81; }
+.account-flow .booking-panel-body > div > button { min-height: 100px; padding: 20px; }
+.account-flow .booking-panel-body > div > label.rounded-lg { margin-top: 8px; padding: 20px; }
+.account-flow .booking-panel-body button.border-gold { background: #bca86a14; }
+.account-flow .booking-panel-body button.bg-gold { background: linear-gradient(120deg, #e1c98b, #bda163); }
+.account-flow .booking-panel-body input:not([type=checkbox]), .account-flow .booking-panel-body textarea { min-height: 48px; border-radius: 8px; background: #07100d80; }
+.account-flow .booking-panel-footer { padding: 20px 30px; border-color: #b1b8a730; gap: 16px; }
+.account-flow .booking-panel-footer button { min-height: 48px; height: auto; padding: 12px 20px; border-radius: 8px; }
+.account-flow .booking-panel-footer button.bg-gold, .account-flow .booking-confirmation > button { background: linear-gradient(120deg, #e1c98b, #bda163); color: #10170f; }
+.account-flow .booking-panel-footer button.bg-gold:not(:disabled):hover, .account-flow .booking-confirmation > button:hover { background: #e1c98b; }
+.account-flow .booking-confirmation { padding: 30px; }
+.account-flow .booking-confirmation > div:first-child { display: grid; place-items: center; width: 56px; height: 56px; border: 1px solid #bca86a50; border-radius: 50%; background: #bca86a10; }
+.account-flow .booking-confirmation h2 { font-size: 42px; }
+.account-flow .booking-confirmation > button { min-height: 48px; }
+.bookings-section { margin-top: 32px; }
+.bookings-section + .bookings-section { margin-top: 40px; }
+.bookings-section-heading { display: flex; align-items: baseline; gap: 18px; border-bottom: 1px solid #b1b8a730; padding-bottom: 14px; }
+.bookings-section-heading h2 { font-size: 32px; font-weight: 600; }
+.bookings-section-heading > span { margin-left: auto; color: var(--muted); font-size: 12px; }
+.appointment-card, .appointments-empty { border: 1px solid #b1b8a735; border-radius: 12px; background: linear-gradient(115deg, #263a2c40, #07100d90); padding: 26px 30px; }
+.appointment-details { display: flex; gap: 20px; min-width: 0; }
+.appointment-details > div { min-width: 0; overflow-wrap: anywhere; }
+.appointment-service { font-family: var(--font-cormorant), Georgia, serif; font-size: 30px; font-weight: 600; line-height: 1.1; }
+.appointment-price { color: var(--gold); font-size: 26px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.appointment-price > span { display: block; margin-top: 2px; color: var(--muted); font-size: 11px; font-weight: 400; }
+.appointment-cancel { display: flex; justify-content: flex-end; border-top: 1px solid #b1b8a720; padding-top: 16px; margin-top: 18px; }
+.appointment-cancel button { min-height: 44px; border-radius: 8px; font-weight: 500; }
+.appointments-empty { display: flex; align-items: center; gap: 20px; min-height: 136px; color: var(--muted); }
+.account-flow a:focus-visible, .account-flow button:focus-visible, .account-flow input:focus-visible, .account-flow textarea:focus-visible { outline: 2px solid #dec58a; outline-offset: 4px; }
+.account-flow input, .account-flow textarea { caret-color: #dec58a; }
+.account-flow [role=listbox] { scrollbar-width: thin; scrollbar-color: #526053 transparent; }
+@media (max-width: 1023px) { .account-flow-content { padding: 100px 24px 110px; } .account-page-heading { width: 65%; } .account-page-portrait { right: 0; width: 220px; height: 250px; } }
+@media (max-width: 700px) {
+  .account-flow-content { padding: 90px 20px 110px; }
+  .account-page-intro { min-height: 0; padding-top: 30px; }
+  .account-page-heading { width: 100%; padding: 80px 0 28px; }
+  .account-page-heading h1 { max-width: 9ch; font-size: 52px; }
+  .account-page-heading > p { font-size: 14px; max-width: 100%; }
+  .account-page-portrait { top: 0; right: 0; width: 140px; height: 170px; }
+  .account-page-intro .account-wordmark { top: 30px; left: 0; right: auto; font-size: clamp(65px, 17vw, 100px); }
+  .account-booking-form { margin-top: 24px; }
+  .account-flow .booking-panel-heading { padding: 20px; }
+  .account-flow .booking-panel-heading h2 { font-size: 30px; }
+  .account-flow .booking-panel-body { padding: 20px; min-height: 300px; }
+  .account-flow .booking-panel-body > div > button, .account-flow .booking-panel-body > div > label.rounded-lg { padding: 16px 12px; }
+  .account-flow .booking-panel-body .text-lg { font-size: 15px; }
+  .account-flow .booking-panel-footer { padding: 16px; gap: 8px; }
+  .account-flow .booking-panel-footer button { padding: 12px; font-size: 12px; }
+  .account-flow .booking-confirmation { padding: 22px; }
+  .account-flow .booking-confirmation h2 { font-size: 36px; }
+  .appointment-card, .appointments-empty { padding: 22px 20px; }
+  .appointment-details { gap: 14px; }
+  .appointment-service { font-size: 27px; }
+  .appointment-card > div > div:last-child { justify-content: space-between; align-items: center; }
+  .appointment-price { text-align: right; }
+  .appointments-empty { gap: 14px; font-size: 14px; }
+}
