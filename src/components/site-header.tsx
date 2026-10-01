@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CalendarDays, Crown, Home, Menu, Scissors, Star, UserRound, X } from "lucide-react";
 import { LogoutButton } from "@/components/logout-button";
 import type { Profile } from "@/lib/types";
@@ -33,6 +33,22 @@ export function SiteHeader({ profile }: { profile?: Profile | null }) {
   const searchParams = useSearchParams();
   const isAdmin = profile?.role === "admin";
   const isCustomer = profile?.role === "customer";
+  useEffect(() => {
+    if (pathname !== "/" || isAdmin) return;
+    const previousRestoration = window.history.scrollRestoration;
+    window.history.scrollRestoration = "manual";
+    // A saved gallery URL must not move the booking entry point on arrival or refresh.
+    if (window.location.hash === "#recent-cuts") {
+      window.history.replaceState(window.history.state, "", window.location.pathname + window.location.search);
+    }
+    const frame = !window.location.hash
+      ? window.requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0, behavior: "instant" }))
+      : null;
+    return () => {
+      if (frame !== null) window.cancelAnimationFrame(frame);
+      window.history.scrollRestoration = previousRestoration;
+    };
+  }, [pathname, isAdmin]);
   const desktopNavItems = isAdmin ? adminNavItems : isCustomer ? customerNavItems : navItems;
   const mobileNavItems = isAdmin ? adminNavItems : isCustomer ? customerNavItems : navItems;
   const referralCode = searchParams.get("ref");
@@ -209,7 +225,7 @@ function NavigationLink({
   const activeClassName = `${className} ${isActive ? "bg-white/10 text-foreground" : ""}`;
   if (href === "/" || href.startsWith("/#")) {
     return (
-      <a href={href} className={activeClassName} aria-current={isActive ? "page" : undefined} onClick={onClick}>
+      <a href={pathname === "/" && href.startsWith("/#") ? href.slice(1) : href} className={activeClassName} aria-current={isActive ? "page" : undefined} onClick={onClick}>
         {children}
       </a>
     );
