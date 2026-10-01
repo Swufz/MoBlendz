@@ -22,7 +22,7 @@ export default async function SettingsPage() {
           Admin settings
         </p>
         <h1 className="text-3xl font-semibold">Pricing, durations, and hours</h1>
-        <section className="mt-6 grid gap-4 rounded-lg border border-line bg-surface p-5 shadow-sm sm:grid-cols-2">
+        <section id="services" className="mt-6 grid scroll-mt-24 gap-4 rounded-lg border border-line bg-surface p-5 shadow-sm sm:grid-cols-2">
           <Setting label="Haircut price" value={`$${settings.haircut_price}`} />
           <Setting label="Haircut + beard price" value={`$${settings.haircut_beard_price}`} />
           <Setting label="Loyalty requirement" value={`${settings.loyalty_required_haircuts}th cut free`} />

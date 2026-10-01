@@ -70,7 +70,7 @@ export function SiteHeader({ profile }: { profile?: Profile | null }) {
         className={`${["/", "/booking", "/bookings", "/profile"].includes(pathname) ? "fixed" : "sticky"} inset-x-0 top-0 z-40 pointer-events-none px-3 pt-3 sm:px-5`}
       >
         <div className="liquid-glass-shell pointer-events-auto mx-auto flex min-h-14 w-fit max-w-full items-center gap-1 rounded-full p-1.5">
-          {isCustomer ? <Link href="/" className="px-4 text-xl font-bold text-foreground" style={{ fontFamily: "var(--font-outfit)" }}>MoBlendz</Link> : null}
+          {isCustomer || isAdmin ? <Link href={isAdmin ? "/admin" : "/"} className="px-4 text-xl font-bold text-foreground" style={{ fontFamily: "var(--font-outfit)" }}>MoBlendz</Link> : null}
           <button
             type="button"
             aria-label="Open menu"
