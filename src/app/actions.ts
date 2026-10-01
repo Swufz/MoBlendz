@@ -34,7 +34,10 @@ const activeBookingLimitMessage =
 
 const bookingSchema = z.object({
   serviceType: z.enum(["haircut", "haircut_beard"]),
-  scalpNeckMassage: z.coerce.boolean().optional(),
+  scalpNeckMassage: z
+    .enum(["true", "false"])
+    .optional()
+    .transform((value) => value === "true"),
   date: z.string().min(1),
   time: z.string().min(1),
   notes: z.string().max(500).optional(),
@@ -188,7 +191,7 @@ export async function createBooking(formData: FormData) {
 
   const settings = await getAdminSettings();
   const startsAt = combineDateAndTime(parsed.data.date, parsed.data.time);
-  const hasMassageAddon = Boolean(parsed.data.scalpNeckMassage);
+  const hasMassageAddon = parsed.data.scalpNeckMassage;
   const duration =
     getServiceDuration(parsed.data.serviceType, settings) +
     (hasMassageAddon ? SCALP_NECK_MASSAGE_ADDON_DURATION : 0);

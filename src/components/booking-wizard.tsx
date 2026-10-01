@@ -38,7 +38,6 @@ import type { AdminSettings, BlockedTime, BookingStatus, ServiceType, WeeklyAvai
 const services: ServiceType[] = ["haircut", "haircut_beard"];
 const bookingDraftKey = "moblendz_booking_draft";
 const legacyPendingBookingKey = "mo-blendz-pending-booking";
-const completedBookingKey = "mo-blendz-completed-booking";
 
 type ActiveBooking = {
   id: string;
@@ -185,24 +184,15 @@ export function BookingWizard({
 
   useEffect(() => {
     if (shouldStartFresh) {
-      sessionStorage.removeItem(completedBookingKey);
       clearPendingBooking();
       const timeoutId = window.setTimeout(() => setIsDraftStorageReady(true), 0);
       return () => window.clearTimeout(timeoutId);
     }
 
-    const savedConfirmation = readCompletedBooking();
-    if (savedConfirmation) {
-      // Restore client-only sessionStorage state after hydration.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setCompletedBooking(savedConfirmation);
-      setIsDraftStorageReady(true);
-      return;
-    }
-
     const draft = readPendingBooking();
     if (draft) {
       applyDraft(draft);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setStep(getStepForDraft(draft));
       debugDraft("draft restored", draft);
     }
@@ -479,10 +469,8 @@ export function BookingWizard({
 
       if (result.ok) {
         clearPendingBooking();
-        sessionStorage.setItem(completedBookingKey, JSON.stringify(result.booking));
         setCompletedBooking(result.booking);
         setMessage("");
-        window.history.replaceState(null, "", "/booking?confirmed=1");
         return;
       }
 
@@ -538,7 +526,6 @@ export function BookingWizard({
       <BookingConfirmation
         booking={completedBooking}
         onRestart={() => {
-          sessionStorage.removeItem(completedBookingKey);
           clearPendingBooking();
           setCompletedBooking(null);
           setStep(0);
@@ -1257,19 +1244,6 @@ function debugBookingTime(draft: PendingBooking) {
   );
   console.log(`[booking time] Stored UTC time: ${storedUtcTime}`);
   console.log(`[booking time] Displayed time: ${formatBookingTime(draft.dateTime || storedUtcTime)}`);
-}
-
-function readCompletedBooking() {
-  try {
-    const raw = sessionStorage.getItem(completedBookingKey);
-    if (!raw) {
-      return null;
-    }
-
-    return JSON.parse(raw) as CompletedBooking;
-  } catch {
-    return null;
-  }
 }
 
 function isSlotAvailable({
